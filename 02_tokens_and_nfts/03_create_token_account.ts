@@ -11,9 +11,11 @@ const TOKEN_MINT_ADDRESS = "9Pot4EZS1dDK73Gut3QuyncYzJ3dbZyNBW7xHPJSu13s";
 const tokenMintAccount = new PublicKey(TOKEN_MINT_ADDRESS);
 console.log('Token mint address: ', tokenMintAccount.toBase58());
 
+const RECIPIENT_ADDRESS = "HQfwpjim6pehGPVqhcEoXYZhTW57bYTJJBdd2GDv5z63";
 const recipientAccount = userAccount.publicKey;
 console.log('Recipient address: ', recipientAccount.toBase58());
 
+const TOKEN_ACCOUNT_ADDRESS = 'EMrLtV5LC8VDVpMJoRxaLE16P9ijrUvbhpqnFUrNkQkH';
 const tokenAccount = await getOrCreateAssociatedTokenAccount(
     connection,
     userAccount,
