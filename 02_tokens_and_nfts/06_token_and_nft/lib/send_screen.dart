@@ -14,35 +14,54 @@ class SendScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Send SOL'),
+        centerTitle: true,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Display wallet balance
             Text(
               'Balance: ${walletProvider.balance} SOL',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: receiverController,
-              decoration: const InputDecoration(
-                labelText: 'Recipient Address',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: amountController,
-              decoration: const InputDecoration(
-                labelText: 'Amount (SOL)',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
+              style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 24),
+            // Recipient Address input
+            TextField(
+              controller: receiverController,
+              decoration: InputDecoration(
+                labelText: 'Recipient Address',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Colors.blue.shade50,
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Amount input
+            TextField(
+              controller: amountController,
+              decoration: InputDecoration(
+                labelText: 'Amount (SOL)',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Colors.blue.shade50,
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+              ),
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+            ),
+            const SizedBox(height: 24),
+            // Send button
             ElevatedButton(
               onPressed: () async {
                 final recipient = receiverController.text;
@@ -52,8 +71,8 @@ class SendScreen extends StatelessWidget {
                 if (recipient.isEmpty || amount == null || amount <= 0) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content:
-                            Text('Please enter valid recipient and amount')),
+                      content: Text('Please enter valid recipient and amount'),
+                    ),
                   );
                   return;
                 }
@@ -65,13 +84,16 @@ class SendScreen extends StatelessWidget {
                 if (signature != null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                        content: Text(
-                            'Successfully sent $amount SOL. Signature: $signature')),
+                      content: Text(
+                        'Successfully sent $amount SOL. Signature: $signature',
+                      ),
+                    ),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text('Transaction failed. Please try again.')),
+                      content: Text('Transaction failed. Please try again.'),
+                    ),
                   );
                 }
 
@@ -79,15 +101,18 @@ class SendScreen extends StatelessWidget {
                 await walletProvider.updateBalance();
               },
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12.0),
+                padding: const EdgeInsets.symmetric(vertical: 14.0),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 backgroundColor: Colors.blueAccent,
               ),
               child: const Text(
-                'Send',
-                style: TextStyle(fontSize: 16),
+                'Send SOL',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
