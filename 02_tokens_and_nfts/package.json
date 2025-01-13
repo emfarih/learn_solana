@@ -16,5 +16,10 @@
     "@solana/web3.js": "^1.98.0",
     "dotenv": "^16.4.7",
     "esrun": "^3.2.26"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.19.1",
+    "@typescript-eslint/parser": "^8.19.1",
+    "eslint": "^9.18.0"
   }
 }
