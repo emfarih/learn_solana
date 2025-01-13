@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:token_and_nft/helper.dart';
 import 'package:token_and_nft/home_screen.dart';
 import 'package:token_and_nft/send_screen.dart';
 import 'package:token_and_nft/wallet_provider.dart';
@@ -46,6 +47,15 @@ class _MainNavigationState extends State<MainNavigation> {
   ];
 
   void _onItemTapped(int index) {
+    final walletProvider = Provider.of<WalletProvider>(context, listen: false);
+
+    // Only allow tapping on the "Send" tab if the wallet is connected
+    if (index == 1 && !walletProvider.isConnected) {
+      // Show SnackBar if wallet is not connected
+      showSnackBar("You need to connect your wallet first!", context);
+      return; // Ignore tap if the wallet is not connected
+    }
+
     setState(() {
       _selectedIndex = index;
     });
@@ -53,6 +63,8 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    final walletProvider = Provider.of<WalletProvider>(context);
+
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -69,6 +81,9 @@ class _MainNavigationState extends State<MainNavigation> {
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.blueAccent,
         onTap: _onItemTapped,
+        // Disable the "Send" tab if the wallet is not connected
+        type: BottomNavigationBarType.fixed,
+        enableFeedback: walletProvider.isConnected,
       ),
     );
   }

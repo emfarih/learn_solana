@@ -24,12 +24,29 @@ class HomeScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  walletProvider.connectToWallet();
-                },
-                child: const Text('Connect to Wallet'),
-              ),
+              // If the wallet is connected, show the wallet address, else show the button
+              walletProvider.isConnected
+                  ? Column(
+                      children: [
+                        Text(
+                          'Connected Wallet: ${walletProvider.wallet?.toBase58() ?? ''}',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () {
+                            walletProvider.disconnectWallet();
+                          },
+                          child: const Text('Disconnect Wallet'),
+                        ),
+                      ],
+                    )
+                  : ElevatedButton(
+                      onPressed: () {
+                        walletProvider.connectToWallet();
+                      },
+                      child: const Text('Connect to Wallet'),
+                    ),
             ],
           ),
         ),

@@ -20,6 +20,12 @@ class SendScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Display wallet balance
+            Text(
+              'Balance: ${walletProvider.balance} SOL',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
             TextField(
               controller: receiverController,
               decoration: const InputDecoration(
@@ -38,11 +44,39 @@ class SendScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final recipient = receiverController.text;
-                final amount = amountController.text;
-                print('Sending $amount SOL to $recipient');
-                walletProvider.sendSol(recipient, double.parse(amount));
+                final amount = double.tryParse(amountController.text);
+
+                // Validate input
+                if (recipient.isEmpty || amount == null || amount <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content:
+                            Text('Please enter valid recipient and amount')),
+                  );
+                  return;
+                }
+
+                // Attempt to send SOL
+                final signature =
+                    await walletProvider.sendSol(recipient, amount);
+
+                if (signature != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text(
+                            'Successfully sent $amount SOL. Signature: $signature')),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Transaction failed. Please try again.')),
+                  );
+                }
+
+                // Optionally, refresh the balance after the transaction
+                await walletProvider.updateBalance();
               },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 12.0),

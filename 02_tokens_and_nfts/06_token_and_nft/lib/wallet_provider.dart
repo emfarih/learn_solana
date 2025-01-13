@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:solana_wallet_adapter/solana_wallet_adapter.dart';
 import 'package:solana_web3/programs.dart';
 import 'package:solana_web3/solana_web3.dart';
-import 'package:solana_wallet_adapter/solana_wallet_adapter.dart';
 
 class WalletProvider with ChangeNotifier {
   Pubkey? wallet;
   double balance = 0.0;
   bool isConnected = false;
-  SolanaWalletAdapter? adapter; // Make the adapter nullable
+  late SolanaWalletAdapter adapter; // Use late initialization
   static final Cluster cluster = Cluster.devnet;
 
   final Connection connection = Connection(Cluster.devnet);
@@ -22,30 +22,24 @@ class WalletProvider with ChangeNotifier {
   // Connect to the wallet
   Future<void> connectToWallet() async {
     try {
-      if (adapter == null) {
-        throw Exception("Wallet adapter is not initialized.");
-      }
+      print('Adapter initialized: $adapter'); // Log the adapter for debugging
 
-      print(
-          'Adapter initialized: ${adapter!.store}'); // Print adapter for debugging
-
-      // Proceed with the authorization check
-      if (adapter!.store.apps.isEmpty || adapter!.store.apps.length < 2) {
+      if (adapter.store.apps.isEmpty || adapter.store.apps.length < 2) {
         throw Exception("The apps list is empty or has fewer than two items.");
       }
 
-      print('Adapter Store Apps: ${adapter!.store.apps}'); // Log the apps
+      print('Adapter Store Apps: ${adapter.store.apps}'); // Log the apps
 
-      if (!adapter!.isAuthorized) {
+      if (!adapter.isAuthorized) {
         print('Authorizing wallet...');
-        await adapter!.authorize(
-          walletUriBase: adapter!.store.apps[1].walletUriBase,
+        await adapter.authorize(
+          walletUriBase: adapter.store.apps[1].walletUriBase,
         );
         print('Authorization successful!');
 
-        if (adapter!.connectedAccount != null) {
+        if (adapter.connectedAccount != null) {
           final pubKey =
-              Pubkey.tryFromBase64(adapter!.connectedAccount!.address);
+              Pubkey.tryFromBase64(adapter.connectedAccount!.address);
           print('Connected wallet address: $pubKey');
           isConnected = true;
           wallet = pubKey;
@@ -64,6 +58,8 @@ class WalletProvider with ChangeNotifier {
 
   // Disconnect the wallet
   Future<void> disconnectWallet() async {
+    print('Disconnecting from wallet...');
+    await adapter.deauthorize();
     wallet = null;
     balance = 0.0;
     isConnected = false;
@@ -83,18 +79,15 @@ class WalletProvider with ChangeNotifier {
   }
 
   // Send SOL to another address
-  void sendSol(String recipient, double amount) async {
-    if (adapter == null) {
-      print('Adapter is not initialized');
-      return;
-    }
-
+  Future<List<TransactionSignature?>?> sendSol(
+      String recipient, double amount) async {
     final Connection connection = Connection(cluster);
 
     try {
       BigInt lamports = BigInt.from(amount * lamportsPerSol);
       print('Amount converted to lamports: $lamports');
 
+      // Check for sufficient balance
       if (balance < (lamports.toDouble() / lamportsPerSol)) {
         throw Exception("Insufficient balance.");
       }
@@ -106,6 +99,7 @@ class WalletProvider with ChangeNotifier {
         lamports: lamports,
       );
 
+      // Get the latest blockhash
       final latestBlockhash = await connection.getLatestBlockhash();
       print('Latest blockhash: ${latestBlockhash.blockhash}');
 
@@ -117,20 +111,28 @@ class WalletProvider with ChangeNotifier {
       );
       print('Transaction created: $transaction');
 
-      final encodedTransaction = adapter!.encodeTransaction(transaction);
+      // Encode the transaction
+      final encodedTransaction = adapter.encodeTransaction(transaction);
       print('Encoded transaction: $encodedTransaction');
 
+      // Sign the transaction
       final signedTransaction =
-          await adapter!.signTransactions([encodedTransaction]);
+          await adapter.signTransactions([encodedTransaction]);
       print('Signed transaction: $signedTransaction');
 
+      // Send the signed transaction and get the signature
       final signature = await connection
           .sendSignedTransactions(signedTransaction.signedPayloads);
       print('Signature: $signature');
 
+      // Update the balance after the transaction
       await updateBalance();
+
+      // Return the transaction signature on success
+      return signature;
     } catch (e) {
       print('Transaction failed: $e');
+      return null; // Return null if the transaction failed
     }
   }
 }
