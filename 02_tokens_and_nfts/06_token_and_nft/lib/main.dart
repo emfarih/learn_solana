@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:token_and_nft/helper.dart';
 import 'package:token_and_nft/home_screen.dart';
 import 'package:token_and_nft/send_screen.dart';
+import 'package:token_and_nft/token_screen.dart'; // Import the TokenScreen
 import 'package:token_and_nft/wallet_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -44,13 +45,14 @@ class _MainNavigationState extends State<MainNavigation> {
   static const List<Widget> _pages = <Widget>[
     HomeScreen(),
     SendScreen(),
+    TokenScreen(), // Add TokenScreen here
   ];
 
   void _onItemTapped(int index) {
     final walletProvider = Provider.of<WalletProvider>(context, listen: false);
 
-    // Only allow tapping on the "Send" tab if the wallet is connected
-    if (index == 1 && !walletProvider.isConnected) {
+    // Only allow tapping on the "Send" and "Token" tabs if the wallet is connected
+    if ((index == 1 || index == 2) && !walletProvider.isConnected) {
       // Show SnackBar if wallet is not connected
       showSnackBar("You need to connect your wallet first!", context);
       return; // Ignore tap if the wallet is not connected
@@ -68,21 +70,26 @@ class _MainNavigationState extends State<MainNavigation> {
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
+        items: <BottomNavigationBarItem>[
+          const BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.send),
+            icon: const Icon(Icons.send),
             label: 'Send',
+            // Disable "Send" tab if wallet is not connected
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.token),
+            label: 'Token',
+            // Disable "Token" tab if wallet is not connected
           ),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.blueAccent,
         onTap: _onItemTapped,
-        // Disable the "Send" tab if the wallet is not connected
-        type: BottomNavigationBarType.fixed,
+        // Disable feedback when wallet is not connected
         enableFeedback: walletProvider.isConnected,
       ),
     );
