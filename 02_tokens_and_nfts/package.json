@@ -13,9 +13,8 @@
   "dependencies": {
     "@metaplex-foundation/mpl-token-metadata": "^2.13.0",
     "@solana-developers/helpers": "^2.5.6",
-    "esm": "^3.2.25",
-    "esrun": "^3.2.26",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.7.3"
+    "@solana/web3.js": "^1.98.0",
+    "dotenv": "^16.4.7",
+    "esrun": "^3.2.26"
   }
 }
