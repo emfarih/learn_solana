@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:token_and_nft/helper.dart';
-import 'package:token_and_nft/home_screen.dart';
-import 'package:token_and_nft/send_screen.dart';
-import 'package:token_and_nft/token_screen.dart'; // Import the TokenScreen
+import 'package:token_and_nft/screen/home_screen.dart';
+import 'package:token_and_nft/screen/send_screen.dart';
+import 'package:token_and_nft/screen/token_list_screen.dart';
+import 'package:token_and_nft/screen/token_screen.dart'; // Import the TokenScreen
 import 'package:token_and_nft/wallet_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -45,7 +46,7 @@ class _MainNavigationState extends State<MainNavigation> {
   static const List<Widget> _pages = <Widget>[
     HomeScreen(),
     SendScreen(),
-    TokenScreen(), // Add TokenScreen here
+    TokenListScreen(), // Add TokenScreen here
   ];
 
   void _onItemTapped(int index) {

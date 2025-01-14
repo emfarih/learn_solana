@@ -37,6 +37,7 @@ dependencies:
   solana_wallet_adapter: ^0.1.5
   solana_web3: ^0.1.3
   provider: ^6.1.2
+  http: ^1.2.2
 
 dependency_overrides:
   pinenacl: 0.6.0

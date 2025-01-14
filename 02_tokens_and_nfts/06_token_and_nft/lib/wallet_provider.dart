@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:solana_wallet_adapter/solana_wallet_adapter.dart';
 import 'package:solana_web3/programs.dart';
 import 'package:solana_web3/solana_web3.dart';
+import 'package:http/http.dart' as http;
+import 'package:token_and_nft/model/token_account_response.dart';
 
 class WalletProvider with ChangeNotifier {
   Pubkey? wallet;
@@ -133,6 +137,38 @@ class WalletProvider with ChangeNotifier {
     } catch (e) {
       print('Transaction failed: $e');
       return null; // Return null if the transaction failed
+    }
+  }
+
+  /// Fetch SPL token accounts for the current wallet
+  Future<TokenAccountResponse> getTokenAccounts() async {
+    if (wallet == null) {
+      throw Exception('Wallet address is not set');
+    }
+
+    final uri = adapter.cluster!.uri;
+    final headers = {'Content-Type': 'application/json'};
+    final body = jsonEncode({
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "getTokenAccountsByOwner",
+      "params": [
+        wallet!.toBase58(),
+        {"programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"},
+        {"encoding": "jsonParsed"}
+      ]
+    });
+
+    try {
+      final response = await http.post(uri, headers: headers, body: body);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return TokenAccountResponse.fromJson(data);
+      } else {
+        throw Exception('Error fetching token accounts: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Failed to fetch token accounts: $e');
     }
   }
 }
