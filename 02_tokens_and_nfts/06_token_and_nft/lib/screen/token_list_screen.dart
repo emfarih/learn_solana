@@ -16,7 +16,8 @@ class TokenListScreen extends StatelessWidget {
       ),
       body: walletProvider.isConnected
           ? FutureBuilder<TokenAccountResponse>(
-              future: walletProvider.getTokenAccounts(), // Fetch token accounts
+              future: walletProvider
+                  .getTokenAccounts(), // Fetch token accounts with metadata
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -26,20 +27,26 @@ class TokenListScreen extends StatelessWidget {
                     child: Text('Error: ${snapshot.error}'),
                   );
                 }
+
                 final tokenAccounts = snapshot.data?.accounts ?? [];
                 if (tokenAccounts.isEmpty) {
                   return const Center(child: Text('No tokens found.'));
                 }
+
                 return ListView.builder(
                   itemCount: tokenAccounts.length,
                   itemBuilder: (context, index) {
                     final account = tokenAccounts[index];
+                    final metadata = account.metadata;
+
                     return Card(
                       margin: const EdgeInsets.symmetric(
                           vertical: 8.0, horizontal: 16.0),
                       child: ListTile(
                         title: Text(
-                          'Mint: ${account.accountInfo.mint}',
+                          metadata != null
+                              ? '${metadata.name} (${metadata.symbol})'
+                              : 'Mint: ${account.accountInfo.mint}',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Column(
@@ -48,6 +55,7 @@ class TokenListScreen extends StatelessWidget {
                             Text('Owner: ${account.accountInfo.owner}'),
                             Text(
                                 'Balance: ${account.accountInfo.tokenAmount.uiAmountString}'),
+                            if (metadata != null) Text('URI: ${metadata.uri}'),
                           ],
                         ),
                         isThreeLine: true,
@@ -71,6 +79,12 @@ class TokenListScreen extends StatelessWidget {
                                         'Decimals: ${account.accountInfo.tokenAmount.decimals}'),
                                     Text(
                                         'UI Amount: ${account.accountInfo.tokenAmount.uiAmount}'),
+                                    if (metadata != null) ...[
+                                      const SizedBox(height: 8),
+                                      Text('Name: ${metadata.name}'),
+                                      Text('Symbol: ${metadata.symbol}'),
+                                      Text('URI: ${metadata.uri}'),
+                                    ],
                                   ],
                                 ),
                                 actions: [

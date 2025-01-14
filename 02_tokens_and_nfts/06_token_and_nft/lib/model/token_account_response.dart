@@ -17,13 +17,31 @@ class TokenAccountResponse {
 class TokenAccount {
   final String pubkey;
   final TokenAccountInfo accountInfo;
+  TokenMetadata? metadata;
 
-  TokenAccount({required this.pubkey, required this.accountInfo});
+  TokenAccount(
+      {required this.pubkey, required this.accountInfo, this.metadata});
 
   factory TokenAccount.fromJson(Map<String, dynamic> json) {
     return TokenAccount(
       pubkey: json['pubkey'] as String,
       accountInfo: TokenAccountInfo.fromJson(json['account']),
+    );
+  }
+}
+
+class TokenMetadata {
+  final String name;
+  final String symbol;
+  final String uri;
+
+  TokenMetadata({required this.name, required this.symbol, required this.uri});
+
+  factory TokenMetadata.fromJson(Map<String, dynamic> json) {
+    return TokenMetadata(
+      name: json['name'],
+      symbol: json['symbol'],
+      uri: json['uri'],
     );
   }
 }

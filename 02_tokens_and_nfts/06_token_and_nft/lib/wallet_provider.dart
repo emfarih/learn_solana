@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:crypto/crypto.dart';
 
 import 'package:flutter/material.dart';
 import 'package:solana_wallet_adapter/solana_wallet_adapter.dart';
@@ -146,6 +148,8 @@ class WalletProvider with ChangeNotifier {
       throw Exception('Wallet address is not set');
     }
 
+    print('Fetching token accounts for wallet: ${wallet!.toBase58()}');
+
     final uri = adapter.cluster!.uri;
     final headers = {'Content-Type': 'application/json'};
     final body = jsonEncode({
@@ -159,16 +163,123 @@ class WalletProvider with ChangeNotifier {
       ]
     });
 
+    print('Request URI: $uri');
+    print('Request Body: $body');
+
     try {
       final response = await http.post(uri, headers: headers, body: body);
+      print('Response Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return TokenAccountResponse.fromJson(data);
+        print('Parsed JSON Response: $data');
+
+        final tokenAccounts = TokenAccountResponse.fromJson(data);
+        print(
+            'Number of Token Accounts Found: ${tokenAccounts.accounts.length}');
+
+        // Fetch metadata for each token mint
+        for (var account in tokenAccounts.accounts) {
+          print('Fetching metadata for Mint: ${account.accountInfo.mint}');
+          final metadata = await fetchTokenMetadata(account.accountInfo.mint);
+          account.metadata = metadata;
+          print(
+              'Metadata for Mint ${account.accountInfo.mint}: ${metadata != null ? metadata.name : 'No Metadata Found'}');
+        }
+
+        return tokenAccounts;
       } else {
+        print('Error Response Body: ${response.body}');
         throw Exception('Error fetching token accounts: ${response.body}');
       }
     } catch (e) {
+      print('Failed to fetch token accounts: $e');
       throw Exception('Failed to fetch token accounts: $e');
+    }
+  }
+
+  Future<TokenMetadata?> fetchTokenMetadata(String mintAddress) async {
+    final metadataProgramId =
+        "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"; // Metaplex Token Metadata Program ID
+    final metadataAccount = await getMetadataAccount(mintAddress);
+
+    print('Fetching metadata for Mint Address: $mintAddress');
+    print('Derived Metadata Account: $metadataAccount');
+
+    final uri = adapter.cluster!.uri;
+    final headers = {'Content-Type': 'application/json'};
+    final body = jsonEncode({
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "getAccountInfo",
+      "params": [
+        metadataAccount,
+        {"encoding": "jsonParsed"}
+      ]
+    });
+
+    print('Request URI: $uri');
+    print('Request Body: $body');
+
+    try {
+      final response = await http.post(uri, headers: headers, body: body);
+      print('Response Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final metadataJson = data['result']['value']?['data'];
+
+        if (metadataJson != null) {
+          final metadata = TokenMetadata.fromJson(metadataJson);
+          print('Parsed Token Metadata: $metadata');
+          return metadata;
+        } else {
+          print('No metadata found for mint address: $mintAddress');
+          return null;
+        }
+      } else {
+        print('Error fetching token metadata: ${response.body}');
+        throw Exception('Error fetching token metadata: ${response.body}');
+      }
+    } catch (e) {
+      print('Failed to fetch token metadata: $e');
+      throw Exception('Failed to fetch token metadata: $e');
+    }
+  }
+
+  Future<String> getMetadataAccount(String mintAddress) async {
+    const metadataProgramId =
+        "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"; // Metaplex Token Metadata Program ID
+
+    final metadataPubkey = Pubkey.fromBase58(metadataProgramId);
+    final mintPubkey = Pubkey.fromBase58(mintAddress);
+
+    // Log the generated public keys for debugging
+    print("Metadata Program Public Key: ${metadataPubkey.toBase58()}");
+    print("Mint Public Key: ${mintPubkey.toBase58()}");
+
+    try {
+      // Use `findProgramAddress` to derive the metadata account
+      final programAddress = Pubkey.findProgramAddress(
+        [
+          utf8.encode("metadata"), // Metadata prefix
+          metadataPubkey.toBytes(), // Metaplex program ID
+          mintPubkey.toBytes(), // Mint address
+        ],
+        metadataPubkey,
+      );
+
+      // Log the derived metadata account address
+      print(
+          "Derived Metadata Account Address: ${programAddress.pubkey.toBase58()}");
+
+      return programAddress.pubkey.toBase58();
+    } catch (e) {
+      // Handle errors gracefully
+      print("Error deriving program address: $e");
+      return "Metadata not found or error deriving address.";
     }
   }
 }
