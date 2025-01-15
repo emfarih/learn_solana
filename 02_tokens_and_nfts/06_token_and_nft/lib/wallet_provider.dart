@@ -1,12 +1,11 @@
 import 'dart:convert';
-import 'dart:typed_data';
-import 'package:crypto/crypto.dart';
 
 import 'package:flutter/material.dart';
 import 'package:solana_wallet_adapter/solana_wallet_adapter.dart';
 import 'package:solana_web3/programs.dart';
 import 'package:solana_web3/solana_web3.dart';
 import 'package:http/http.dart' as http;
+import 'package:token_and_nft/helper.dart';
 import 'package:token_and_nft/model/token_account_response.dart';
 
 class WalletProvider with ChangeNotifier {
@@ -199,6 +198,11 @@ class WalletProvider with ChangeNotifier {
     }
   }
 
+  void decodeMetadata(String base64Data) {
+    final decodedBytes = base64.decode(base64Data);
+    print("Decoded Metadata: ${utf8.decode(decodedBytes)}");
+  }
+
   Future<TokenMetadata?> fetchTokenMetadata(String mintAddress) async {
     final metadataProgramId =
         "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"; // Metaplex Token Metadata Program ID
@@ -229,12 +233,22 @@ class WalletProvider with ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final metadataJson = data['result']['value']?['data'];
+        final metadataBase64 = data['result']['value']?['data']
+            ?[0]; // Access the base64-encoded metadata
 
-        if (metadataJson != null) {
-          final metadata = TokenMetadata.fromJson(metadataJson);
-          print('Parsed Token Metadata: $metadata');
-          return metadata;
+        if (metadataBase64 != null) {
+          // Decode the base64-encoded metadata
+          final decodedMetadata = base64Decode(metadataBase64);
+          print('Decoded Metadata (Bytes): $decodedMetadata');
+
+          List<String> chunks = parseAndDecodeMetadata(decodedMetadata);
+          print('Chunks: $chunks');
+
+          final tokenMetadata =
+              TokenMetadata(name: chunks[0], symbol: chunks[2], uri: chunks[3]);
+          print('Parsed Token Metadata: $tokenMetadata');
+
+          return tokenMetadata;
         } else {
           print('No metadata found for mint address: $mintAddress');
           return null;
