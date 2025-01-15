@@ -204,8 +204,6 @@ class WalletProvider with ChangeNotifier {
   }
 
   Future<TokenMetadata?> fetchTokenMetadata(String mintAddress) async {
-    final metadataProgramId =
-        "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"; // Metaplex Token Metadata Program ID
     final metadataAccount = await getMetadataAccount(mintAddress);
 
     print('Fetching metadata for Mint Address: $mintAddress');

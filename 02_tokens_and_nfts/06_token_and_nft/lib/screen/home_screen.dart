@@ -12,8 +12,6 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Wallet Home'),
-        backgroundColor: Colors.blueAccent,
-        centerTitle: true,
       ),
       body: Center(
         child: Padding(
@@ -24,11 +22,7 @@ class HomeScreen extends StatelessWidget {
             children: [
               const Text(
                 'Welcome to Solana Wallet',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blueAccent,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 30),
               walletProvider.isConnected
@@ -52,28 +46,19 @@ class HomeScreen extends StatelessWidget {
                               Text(
                                 'Connected Wallet:',
                                 style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.blueAccent,
-                                ),
+                                    fontSize: 16, fontWeight: FontWeight.w600),
                               ),
                               const SizedBox(height: 10),
                               Text(
                                 walletProvider.wallet?.toBase58() ?? '',
                                 style: const TextStyle(
-                                  fontSize: 14,
-                                  fontStyle: FontStyle.italic,
-                                  color: Colors.blueGrey,
-                                ),
+                                    fontSize: 14, fontStyle: FontStyle.italic),
                               ),
                               const SizedBox(height: 20),
                               Text(
                                 'Balance: ${walletProvider.balance ?? 'Loading...'} SOL',
                                 style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.green,
-                                ),
+                                    fontSize: 16, fontWeight: FontWeight.w500),
                               ),
                               const SizedBox(height: 20),
                               ElevatedButton(
@@ -101,8 +86,6 @@ class HomeScreen extends StatelessWidget {
                         walletProvider.connectToWallet();
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors
-                            .blueAccent, // Replaced 'primary' with 'backgroundColor'
                         padding: const EdgeInsets.symmetric(
                             horizontal: 40, vertical: 12),
                         shape: RoundedRectangleBorder(

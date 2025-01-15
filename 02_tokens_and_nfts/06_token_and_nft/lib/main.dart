@@ -88,7 +88,7 @@ class _MainNavigationState extends State<MainNavigation> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blueAccent,
+        selectedItemColor: Theme.of(context).primaryColor,
         onTap: _onItemTapped,
         // Disable feedback when wallet is not connected
         enableFeedback: walletProvider.isConnected,
