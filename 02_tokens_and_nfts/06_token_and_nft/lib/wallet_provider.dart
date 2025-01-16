@@ -112,7 +112,7 @@ class WalletProvider with ChangeNotifier {
       if (!adapter.isAuthorized) {
         print('Authorizing wallet...');
         await adapter.authorize(
-          walletUriBase: adapter.store.apps[0].walletUriBase,
+          walletUriBase: adapter.store.apps[1].walletUriBase,
         );
         print('Authorization successful!');
 
