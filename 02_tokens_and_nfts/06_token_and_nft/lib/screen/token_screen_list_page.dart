@@ -3,81 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:token_and_nft/model/token_account_response.dart';
 import 'package:token_and_nft/wallet_provider.dart';
 
-class TokenListScreen extends StatefulWidget {
-  const TokenListScreen({super.key});
-
-  @override
-  // ignore: library_private_types_in_public_api
-  _TokenListScreenState createState() => _TokenListScreenState();
-}
-
-class _TokenListScreenState extends State<TokenListScreen> {
-  int _selectedIndex = 0; // To keep track of the selected tab
-
-  // List of screens for the bottom navigation
-  final List<Widget> _screens = [
-    const TokenListPage(), // List tokens screen
-    const CreateTokenMintPage(), // Create token mint screen
-    const SendTokenPage(), // Send token screen
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Your Tokens'),
-      ),
-      body: _screens[_selectedIndex], // Show the selected screen
-      bottomNavigationBar: Container(
-        height: 36, // Adjust the height to half of the default
-        decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor, // Default blue background
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
-          ),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: Icon(Icons.list),
-              label: '', // Hide text label
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.add),
-              label: '', // Hide text label
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.send),
-              label: '', // Hide text label
-            ),
-          ],
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: Colors.white, // Default blue theme selected color
-          unselectedItemColor:
-              Colors.white60, // Default blue theme unselected color
-          backgroundColor: Colors
-              .transparent, // Transparent background as container handles color
-          elevation: 0, // No shadow
-          iconSize: 16, // Smaller icons (default is around 30)
-          selectedFontSize: 0, // Hide the selected label
-          unselectedFontSize: 0, // Hide the unselected label
-          showUnselectedLabels: false, // Don't show unselected labels
-          showSelectedLabels: false, // Don't show selected labels
-        ),
-      ),
-    );
-  }
-}
-
 class TokenListPage extends StatelessWidget {
   const TokenListPage({super.key});
 
@@ -171,23 +96,5 @@ class TokenListPage extends StatelessWidget {
             },
           )
         : const Center(child: Text('Connect your wallet to view tokens.'));
-  }
-}
-
-class CreateTokenMintPage extends StatelessWidget {
-  const CreateTokenMintPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('Create Token Mint Screen'));
-  }
-}
-
-class SendTokenPage extends StatelessWidget {
-  const SendTokenPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('Send Token Screen'));
   }
 }

@@ -2,6 +2,10 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+const metadataProgramId =
+    "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"; // Metaplex Token Metadata Program ID
+final tokenProgramId = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
+
 void showSnackBar(String message, BuildContext context) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(content: Text(message)),

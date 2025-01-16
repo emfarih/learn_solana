@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:solana_wallet_adapter/solana_wallet_adapter.dart';
@@ -7,6 +8,7 @@ import 'package:solana_web3/solana_web3.dart';
 import 'package:http/http.dart' as http;
 import 'package:token_and_nft/helper.dart';
 import 'package:token_and_nft/model/token_account_response.dart';
+import 'package:token_and_nft/rpc_calls_helper.dart';
 
 class WalletProvider with ChangeNotifier {
   Pubkey? wallet;
@@ -15,20 +17,92 @@ class WalletProvider with ChangeNotifier {
   late SolanaWalletAdapter adapter; // Use late initialization
   static final Cluster cluster = Cluster.devnet;
 
-  final Connection connection = Connection(Cluster.devnet);
-
   // Initialize the wallet adapter
   Future<void> initWalletAdapter() async {
     adapter = SolanaWalletAdapter(AppIdentity(), cluster: cluster);
     print('Adapter initialized: $adapter'); // Log initialization for debugging
+    print('Adapter cluster: ${adapter.cluster!.uri}');
     notifyListeners();
+  }
+
+  // Send SOL to another address
+  Future<List<TransactionSignature?>?> sendSol(
+      String recipient, double amount) async {
+    final Connection connection = Connection(cluster);
+
+    try {
+      // Debugging: Check the connection and adapter clusters
+      print('--- Debugging Info ---');
+      print('Connection cluster: ${connection.httpCluster.uri}');
+      print('Adapter cluster: ${adapter.cluster?.uri}');
+      print('Recipient address: $recipient');
+      print('Amount to send: $amount SOL');
+      print('Current wallet address: ${wallet?.toBase58()}');
+      print('Current balance: $balance SOL');
+      print('-----------------------');
+
+      // Convert SOL to lamports
+      BigInt lamports = BigInt.from(amount * lamportsPerSol);
+      print('Amount converted to lamports: $lamports');
+
+      // Check for sufficient balance
+      if (balance < (lamports.toDouble() / lamportsPerSol)) {
+        print('Error: Insufficient balance.');
+        throw Exception("Insufficient balance.");
+      }
+
+      // Debug: Log the blockhash retrieval
+      final latestBlockhash = await connection.getLatestBlockhash();
+      print('Latest blockhash: ${latestBlockhash.blockhash}');
+
+      // Debug: Log transaction creation details
+      final TransactionInstruction instruction = SystemProgram.transfer(
+        fromPubkey: wallet!,
+        toPubkey: Pubkey.fromBase58(recipient),
+        lamports: lamports,
+      );
+
+      final Transaction transaction = Transaction.v0(
+        payer: wallet!,
+        instructions: [instruction],
+        recentBlockhash: latestBlockhash.blockhash,
+      );
+      print('Transaction created: $transaction');
+
+      // Encode the transaction
+      final encodedTransaction = adapter.encodeTransaction(transaction);
+      print('Encoded transaction: $encodedTransaction');
+
+      // Debug: Log before signing the transaction
+      print('Attempting to sign the transaction...');
+      final signedTransaction =
+          await adapter.signTransactions([encodedTransaction]);
+      print('Signed transaction: $signedTransaction');
+
+      // Debug: Log before sending the signed transaction
+      print('Sending signed transaction...');
+      final signature = await connection
+          .sendSignedTransactions(signedTransaction.signedPayloads);
+      print('Transaction sent. Signature: $signature');
+
+      // Update balance after the transaction
+      print('Updating wallet balance...');
+      await updateBalance();
+      print('Updated balance: $balance SOL');
+
+      // Return the transaction signature
+      return signature;
+    } catch (e, stackTrace) {
+      // Log detailed error and stack trace
+      print('Transaction failed: $e');
+      print('Stack trace: $stackTrace');
+      return null; // Return null if the transaction failed
+    }
   }
 
   // Connect to the wallet
   Future<void> connectToWallet() async {
     try {
-      print('Adapter initialized: $adapter'); // Log the adapter for debugging
-
       if (adapter.store.apps.isEmpty || adapter.store.apps.length < 2) {
         throw Exception("The apps list is empty or has fewer than two items.");
       }
@@ -38,7 +112,7 @@ class WalletProvider with ChangeNotifier {
       if (!adapter.isAuthorized) {
         print('Authorizing wallet...');
         await adapter.authorize(
-          walletUriBase: adapter.store.apps[1].walletUriBase,
+          walletUriBase: adapter.store.apps[0].walletUriBase,
         );
         print('Authorization successful!');
 
@@ -73,6 +147,7 @@ class WalletProvider with ChangeNotifier {
 
   // Update the balance
   Future<void> updateBalance() async {
+    final Connection connection = Connection(cluster);
     if (wallet == null) return;
     try {
       final lamports = await connection.getBalance(wallet!);
@@ -80,64 +155,6 @@ class WalletProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       print('Error fetching balance: $e');
-    }
-  }
-
-  // Send SOL to another address
-  Future<List<TransactionSignature?>?> sendSol(
-      String recipient, double amount) async {
-    final Connection connection = Connection(cluster);
-
-    try {
-      BigInt lamports = BigInt.from(amount * lamportsPerSol);
-      print('Amount converted to lamports: $lamports');
-
-      // Check for sufficient balance
-      if (balance < (lamports.toDouble() / lamportsPerSol)) {
-        throw Exception("Insufficient balance.");
-      }
-
-      // Create the transaction instruction with BigInt lamports
-      final TransactionInstruction instruction = SystemProgram.transfer(
-        fromPubkey: wallet!,
-        toPubkey: Pubkey.fromBase58(recipient),
-        lamports: lamports,
-      );
-
-      // Get the latest blockhash
-      final latestBlockhash = await connection.getLatestBlockhash();
-      print('Latest blockhash: ${latestBlockhash.blockhash}');
-
-      // Create the transaction
-      final Transaction transaction = Transaction.v0(
-        payer: wallet!,
-        instructions: [instruction],
-        recentBlockhash: latestBlockhash.blockhash,
-      );
-      print('Transaction created: $transaction');
-
-      // Encode the transaction
-      final encodedTransaction = adapter.encodeTransaction(transaction);
-      print('Encoded transaction: $encodedTransaction');
-
-      // Sign the transaction
-      final signedTransaction =
-          await adapter.signTransactions([encodedTransaction]);
-      print('Signed transaction: $signedTransaction');
-
-      // Send the signed transaction and get the signature
-      final signature = await connection
-          .sendSignedTransactions(signedTransaction.signedPayloads);
-      print('Signature: $signature');
-
-      // Update the balance after the transaction
-      await updateBalance();
-
-      // Return the transaction signature on success
-      return signature;
-    } catch (e) {
-      print('Transaction failed: $e');
-      return null; // Return null if the transaction failed
     }
   }
 
@@ -151,16 +168,8 @@ class WalletProvider with ChangeNotifier {
 
     final uri = adapter.cluster!.uri;
     final headers = {'Content-Type': 'application/json'};
-    final body = jsonEncode({
-      "jsonrpc": "2.0",
-      "id": 1,
-      "method": "getTokenAccountsByOwner",
-      "params": [
-        wallet!.toBase58(),
-        {"programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"},
-        {"encoding": "jsonParsed"}
-      ]
-    });
+    final body =
+        jsonEncode(getTokenAccountsByOwnerInstruction(wallet!.toBase58()));
 
     print('Request URI: $uri');
     print('Request Body: $body');
@@ -211,15 +220,7 @@ class WalletProvider with ChangeNotifier {
 
     final uri = adapter.cluster!.uri;
     final headers = {'Content-Type': 'application/json'};
-    final body = jsonEncode({
-      "jsonrpc": "2.0",
-      "id": 1,
-      "method": "getAccountInfo",
-      "params": [
-        metadataAccount,
-        {"encoding": "jsonParsed"}
-      ]
-    });
+    final body = jsonEncode(getAccountInfoInstruction(metadataAccount));
 
     print('Request URI: $uri');
     print('Request Body: $body');
@@ -262,9 +263,6 @@ class WalletProvider with ChangeNotifier {
   }
 
   Future<String> getMetadataAccount(String mintAddress) async {
-    const metadataProgramId =
-        "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"; // Metaplex Token Metadata Program ID
-
     final metadataPubkey = Pubkey.fromBase58(metadataProgramId);
     final mintPubkey = Pubkey.fromBase58(mintAddress);
 
@@ -293,5 +291,118 @@ class WalletProvider with ChangeNotifier {
       print("Error deriving program address: $e");
       return "Metadata not found or error deriving address.";
     }
+  }
+
+  Future<void> createTokenMint({
+    required String name,
+    required String symbol,
+    required String uri,
+    required double initialSupply,
+    required int decimals,
+  }) async {
+    final Connection connection = Connection(cluster);
+    try {
+      final lamports = await connection
+          .getMinimumBalanceForRentExemption(0); // Adjust space if needed
+      print('Minimum balance for rent exemption: $lamports');
+
+      final mintPubkey = await generateNewPublicKey();
+      print('New mint address: $mintPubkey');
+
+      // 3. Initialize the mint (Create the mint account)
+      final mintInstruction = SystemProgram.createAccount(
+        fromPubkey: wallet!, // Sender's public key (your wallet)
+        newAccountPubkey: mintPubkey, // New mint account public key
+        lamports: BigInt.from(lamports), // Rent exemption for the new account
+        space:
+            BigInt.from(82), // Space for the mint (0 can be adjusted if needed)
+        programId: Pubkey.fromBase58(tokenProgramId), // Token program ID
+      );
+
+      // Get the latest blockhash
+      final latestBlockhash = await connection.getLatestBlockhash();
+      print('Latest blockhash: ${latestBlockhash.blockhash}');
+
+      // Create the transaction
+      final Transaction mintTransaction = Transaction.v0(
+        payer: wallet!,
+        instructions: [mintInstruction],
+        recentBlockhash: latestBlockhash.blockhash,
+      );
+      print('Transaction created: $mintTransaction');
+
+      // Encode the transaction
+      final encodedMintTransaction = adapter.encodeTransaction(mintTransaction);
+      print('Encoded transaction: $encodedMintTransaction');
+
+      // 3. Mint tokens to the wallet address (if required)
+      // final amount =
+      //     (initialSupply * (10 ^ decimals)).toInt(); // Convert to lamports
+
+      // final mintToInstruction = TransactionInstruction(
+      //   programId: Pubkey.fromBase58(tokenProgramId),
+      //   keys: [
+      //     AccountMeta(wallet!, isSigner: true, isWritable: true),
+      //     AccountMeta(mintPubkey, isSigner: false, isWritable: true),
+      //   ],
+      //   data: Uint8List.fromList(utf8.encode(jsonEncode({'amount': amount}))),
+      // );
+
+      // // Create the transaction
+      // final mintToTransaction = Transaction.v0(
+      //   payer: wallet!,
+      //   instructions: [mintToInstruction],
+      //   recentBlockhash: latestBlockhash.blockhash,
+      // );
+
+      // // Encode the transaction
+      // final encodedMintToTransaction =
+      //     adapter.encodeTransaction(mintToTransaction);
+      // print('Encoded transaction: $encodedMintToTransaction');
+
+      // Sign the transaction
+      final signedTransaction =
+          await adapter.signTransactions([encodedMintTransaction]);
+      print('Signed transaction: $signedTransaction');
+
+      // Send the signed transaction and get the signature
+      final signature = await connection
+          .sendSignedTransactions(signedTransaction.signedPayloads);
+      print('Signature: $signature');
+
+      // // 3. Create metadata for the mint
+      // // final metadataPubkey = await generateNewPublicKey();
+      // final metadataPubkey = "C16NFCmxDmZhXqSUD1HD3ejzKfAXYPSYRquhi6kpAkgV";
+      // print('New metadata address: $metadataPubkey');
+
+      // final createMetadataBody = jsonEncode(createMetadataInstruction(
+      //   wallet!.toBase58(), // Update authority
+      //   metadataPubkey,
+      //   mintPubkey,
+      //   name,
+      //   symbol,
+      //   uri,
+      // ));
+      // final createMetadataResponse = await http.post(
+      //   adapter.cluster!.uri,
+      //   headers: headers,
+      //   body: createMetadataBody,
+      // );
+
+      // if (createMetadataResponse.statusCode != 200) {
+      //   throw Exception("Failed to create metadata.");
+      // }
+
+      print('Token mint created successfully.');
+    } catch (e) {
+      debugPrint('Error creating token: $e');
+      rethrow;
+    }
+  }
+
+  Future<Pubkey> generateNewPublicKey() async {
+    final keyPair = await Keypair
+        .generate(); // This creates a new random keypair (mint address)
+    return keyPair.pubkey; // Return the public key of the mint address
   }
 }
