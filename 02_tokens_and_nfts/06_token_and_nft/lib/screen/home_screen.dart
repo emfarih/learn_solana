@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:token_and_nft/wallet_provider.dart';
+import 'package:token_and_nft/phantom_wallet.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final walletProvider = Provider.of<WalletProvider>(context);
+    final phantomWallet = Provider.of<PhantomWallet>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -25,7 +25,7 @@ class HomeScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 30),
-              walletProvider.isConnected
+              phantomWallet.isConnected
                   ? Column(
                       children: [
                         Container(
@@ -50,20 +50,20 @@ class HomeScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                walletProvider.wallet?.toBase58() ?? '',
+                                phantomWallet.account,
                                 style: const TextStyle(
                                     fontSize: 14, fontStyle: FontStyle.italic),
                               ),
                               const SizedBox(height: 20),
                               Text(
-                                'Balance: ${walletProvider.balance ?? 'Loading...'} SOL',
+                                'Balance: ${phantomWallet.balance ?? 'Loading...'} SOL',
                                 style: const TextStyle(
                                     fontSize: 16, fontWeight: FontWeight.w500),
                               ),
                               const SizedBox(height: 20),
                               ElevatedButton(
                                 onPressed: () {
-                                  walletProvider.disconnectWallet();
+                                  phantomWallet.disconnect();
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors
@@ -83,7 +83,7 @@ class HomeScreen extends StatelessWidget {
                     )
                   : ElevatedButton(
                       onPressed: () {
-                        walletProvider.connectToWallet();
+                        phantomWallet.connect();
                       },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(

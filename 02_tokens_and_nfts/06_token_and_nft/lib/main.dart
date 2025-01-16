@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:token_and_nft/helper.dart';
+import 'package:token_and_nft/phantom_wallet.dart';
 import 'package:token_and_nft/screen/home_screen.dart';
 import 'package:token_and_nft/screen/send_screen.dart';
 import 'package:token_and_nft/screen/token_screen.dart';
@@ -10,8 +11,7 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-            create: (_) => WalletProvider()..initWalletAdapter()),
+        ChangeNotifierProvider(create: (_) => PhantomWallet()),
       ],
       child: const SolanaWalletApp(),
     ),
@@ -49,10 +49,10 @@ class _MainNavigationState extends State<MainNavigation> {
   ];
 
   void _onItemTapped(int index) {
-    final walletProvider = Provider.of<WalletProvider>(context, listen: false);
+    final phantomWallet = Provider.of<PhantomWallet>(context, listen: false);
 
     // Only allow tapping on the "Send" and "Token" tabs if the wallet is connected
-    if ((index == 1 || index == 2) && !walletProvider.isConnected) {
+    if ((index == 1 || index == 2) && !phantomWallet.isConnected) {
       // Show SnackBar if wallet is not connected
       showSnackBar("You need to connect your wallet first!", context);
       return; // Ignore tap if the wallet is not connected
@@ -65,7 +65,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    final walletProvider = Provider.of<WalletProvider>(context);
+    final phantomWallet = Provider.of<PhantomWallet>(context);
 
     return Scaffold(
       body: _pages[_selectedIndex],
@@ -90,7 +90,7 @@ class _MainNavigationState extends State<MainNavigation> {
         selectedItemColor: Theme.of(context).primaryColor,
         onTap: _onItemTapped,
         // Disable feedback when wallet is not connected
-        enableFeedback: walletProvider.isConnected,
+        enableFeedback: phantomWallet.isConnected,
       ),
     );
   }
