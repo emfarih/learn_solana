@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:token_and_nft/wallet_provider.dart';
+import 'package:token_and_nft/phantom_wallet.dart';
 
 class SendScreen extends StatelessWidget {
   const SendScreen({super.key});
@@ -9,7 +9,7 @@ class SendScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final TextEditingController receiverController = TextEditingController();
     final TextEditingController amountController = TextEditingController();
-    final walletProvider = Provider.of<WalletProvider>(context);
+    final phantomWallet = Provider.of<PhantomWallet>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -23,7 +23,7 @@ class SendScreen extends StatelessWidget {
           children: [
             // Display wallet balance
             Text(
-              'Balance: ${walletProvider.balance} SOL',
+              'Balance: ${phantomWallet.balance} SOL',
               style: Theme.of(context).textTheme.titleLarge!.copyWith(
                     color: Colors.blueAccent,
                     fontWeight: FontWeight.bold,
@@ -79,7 +79,7 @@ class SendScreen extends StatelessWidget {
 
                 // Attempt to send SOL
                 final signature =
-                    await walletProvider.sendSol(recipient, amount);
+                    await phantomWallet.sendSol(recipient, amount);
 
                 if (signature != null) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -98,7 +98,7 @@ class SendScreen extends StatelessWidget {
                 }
 
                 // Optionally, refresh the balance after the transaction
-                await walletProvider.updateBalance();
+                await phantomWallet.updateBalance();
               },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14.0),

@@ -56,7 +56,7 @@ class HomeScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 20),
                               Text(
-                                'Balance: ${phantomWallet.balance ?? 'Loading...'} SOL',
+                                'Balance: ${phantomWallet.balance} SOL',
                                 style: const TextStyle(
                                     fontSize: 16, fontWeight: FontWeight.w500),
                               ),

@@ -2,9 +2,13 @@
 
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:async';
+import 'dart:convert';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:js' as js;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:solana_wallet_adapter/solana_wallet_adapter.dart';
+import 'package:solana_web3/programs.dart';
 import 'package:solana_web3/solana_web3.dart';
 
 class PhantomWallet with ChangeNotifier {
@@ -22,14 +26,15 @@ class PhantomWallet with ChangeNotifier {
   // State variables
   bool isConnected = false;
   String account = '';
+  Pubkey accountPubkey = Pubkey.zero();
   double balance = 0.0;
+  final cluster = Cluster.devnet;
+  final provider =
+      js.context['phantom']?['solana']; // Getting the Phantom provider
 
   // Function to connect to Phantom Wallet using the provider
   Future<void> connect() async {
     try {
-      final provider =
-          js.context['phantom']?['solana']; // Getting the Phantom provider
-
       if (provider == null) {
         print("Phantom provider not found");
         return;
@@ -40,6 +45,7 @@ class PhantomWallet with ChangeNotifier {
 
       // On success, extract the public key
       account = resp['publicKey'].toString();
+      accountPubkey = Pubkey.fromBase58(account);
       isConnected = true;
       await updateBalance();
       notifyListeners();
@@ -53,9 +59,6 @@ class PhantomWallet with ChangeNotifier {
   // Function to disconnect from Phantom Wallet
   Future<void> disconnect() async {
     try {
-      final provider =
-          js.context['phantom']?['solana']; // Getting the Phantom provider
-
       if (provider == null) {
         print("Phantom provider not found");
         return;
@@ -66,6 +69,7 @@ class PhantomWallet with ChangeNotifier {
 
       // Reset the state
       account = '';
+      accountPubkey = Pubkey.zero();
       balance = 0.0;
       isConnected = false;
       notifyListeners();
@@ -86,22 +90,10 @@ class PhantomWallet with ChangeNotifier {
     }
   }
 
-  // Function to sign a transaction using Phantom Wallet
-  Future<void> signTransaction(js.JsObject transaction) async {
-    try {
-      await js.context.callMethod('signTransaction', [transaction]);
-      print('Transaction signed');
-    } catch (e) {
-      print('Error signing transaction: $e');
-    }
-  }
-
   // Function to fetch the balance using Solana Web3 API
   // Update the balance
   Future<void> updateBalance() async {
-    final cluster = Cluster.devnet;
     final Connection connection = Connection(cluster);
-    final accountPubkey = Pubkey.fromBase58(account);
 
     try {
       final lamports = await connection.getBalance(accountPubkey);
@@ -109,6 +101,54 @@ class PhantomWallet with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       print('Error fetching balance: $e');
+    }
+  }
+
+  Future<String?> sendSol(String recipient, double amount) async {
+    try {
+      if (!isConnected) {
+        throw Exception("Wallet is not connected.");
+      }
+
+      final Connection connection = Connection(cluster);
+
+      // Convert amount to lamports
+      final lamports = BigInt.from(amount * lamportsPerSol);
+
+      // Create transaction
+      final blockhash = await connection.getLatestBlockhash();
+      final transferInstruction = SystemProgram.transfer(
+        fromPubkey: accountPubkey,
+        toPubkey: Pubkey.fromBase58(recipient),
+        lamports: lamports,
+      );
+      final transaction = Transaction.v0(
+        payer: accountPubkey,
+        instructions: [transferInstruction],
+        recentBlockhash: blockhash.blockhash,
+      );
+      print('Transaction created: ${transaction.toJson()}');
+
+      // Serialize the transaction to a Buffer
+      final serializedBuffer = transaction.serialize();
+      final Uint8List serializedTransaction =
+          Uint8List.fromList(serializedBuffer.toList());
+
+      // Encode the serialized transaction to base64
+      final String base64Transaction = base64Encode(serializedTransaction);
+
+      final signedTransaction = await promiseToFuture(
+        provider.callMethod('signAndSendTransaction', [base64Transaction]),
+      );
+      print('Transaction signed: $signedTransaction');
+
+      // Update balance after transaction
+      await updateBalance();
+      return null;
+    } catch (e, stackTrace) {
+      print('Error sending SOL: $e');
+      print('Stack trace: $stackTrace');
+      return null;
     }
   }
 }

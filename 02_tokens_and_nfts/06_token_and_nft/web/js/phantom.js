@@ -16,12 +16,12 @@ window.addEventListener("load", function () {
     return window.phantom.solana.publicKey.toString();
   }
   
-  function signTransaction(transaction) {
-    return window.phantom.solana.signTransaction(transaction);
+  function signAndSendTransaction(transaction) {
+    return window.phantom.solana.signAndSendTransaction(transaction);
   }
   
   // Expose these methods for Dart to call
   window.connectPhantomWallet = connectPhantomWallet;
   window.getAccount = getAccount;
-  window.signTransaction = signTransaction;
+  window.signAndSendTransaction = signAndSendTransaction;
   
