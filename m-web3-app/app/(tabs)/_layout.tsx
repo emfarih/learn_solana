@@ -5,7 +5,7 @@ import { Tabs } from 'expo-router';
 export default function TabLayout() {
   return (
     <WalletContextProvider>
-      <Tabs>
+      <Tabs screenOptions={{ headerShown: false }}>
         <Tabs.Screen
           name="index"
           options={{
@@ -17,7 +17,7 @@ export default function TabLayout() {
           name="send"
           options={{
             title: 'Send',
-            tabBarIcon: ({ color }) => <FontAwesome size={24} name="send" color={color} />,
+            tabBarIcon: ({ color }) => <FontAwesome size={20} name="send" color={color} />,
           }}
         />
         <Tabs.Screen
