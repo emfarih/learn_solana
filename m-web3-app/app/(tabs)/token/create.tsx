@@ -11,18 +11,11 @@ import {
 import { Snackbar } from "react-native-paper";
 import {
   Connection,
-  PublicKey,
-  Keypair,
   clusterApiUrl,
-  Transaction,
-  SystemProgram,
 } from "@solana/web3.js";
-import {
-  createInitializeMintInstruction,
-  getMinimumBalanceForRentExemptMint,
-  MINT_SIZE,
-} from "@solana/spl-token";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { addMetadataToMint } from "./create/add_metadata";
+import { createAndInitializeMint } from "./create/create_and_init";
 
 const CreateScreen = () => {
   const wallet = useWallet();
@@ -35,71 +28,24 @@ const CreateScreen = () => {
   const [snackbarMessage, setSnackbarMessage] = useState("");
 
   const createToken = async () => {
-    if (!wallet.connected || !wallet.publicKey || !wallet.signTransaction) {
-      setSnackbarMessage("Error: Please connect your wallet.");
-      setSnackbarVisible(true);
-      return;
-    }
-
-    if (!metadataName || !metadataSymbol || !metadataUri) {
-      setSnackbarMessage("Error: Please provide metadata (Name, Symbol, URI).");
-      setSnackbarVisible(true);
-      return;
+    if (!wallet.publicKey || !wallet.signTransaction) {
+      throw new Error("Wallet is not connected or public key is null.");
     }
 
     setLoading(true);
     try {
       const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
-
-      // Generate a new Keypair for the mint account
-      const mint = Keypair.generate();
-      console.log("Mint address:", mint.publicKey.toBase58());
-      // const mintAddress = "7cFKRrupJYM37pvR3aEtosto1MYDUh2PvTbKX5LJhunJ";
-
-      // Calculate rent exemption for the mint account
-      const rentExemption = await getMinimumBalanceForRentExemptMint(connection);
-
-      // Create instructions to set up the mint
-      const createMintAccountIx = SystemProgram.createAccount({
-        fromPubkey: wallet.publicKey,
-        newAccountPubkey: mint.publicKey,
-        lamports: rentExemption,
-        space: MINT_SIZE,
-        programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-      });
-
-      const initializeMintIx = createInitializeMintInstruction(
-        mint.publicKey, // The mint's public key
-        parseInt(decimals), // Number of decimals
-        wallet.publicKey, // Mint authority
-        wallet.publicKey // Freeze authority (optional)
+      // const { txId, mintAddress } = await createAndInitializeMint(connection, wallet, decimals);
+      const mintAddress = '7cFKRrupJYM37pvR3aEtosto1MYDUh2PvTbKX5LJhunJ';
+      const txId = await addMetadataToMint(
+        mintAddress,
+        metadataName,
+        metadataSymbol,
+        metadataUri,
+        wallet.publicKey, // Pass wallet public key
+        wallet.signTransaction // Pass wallet signTransaction function
       );
 
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
-
-      // Create a transaction
-      const transaction = new Transaction({
-        blockhash,
-        lastValidBlockHeight,
-        feePayer: wallet.publicKey,
-      }).add(createMintAccountIx, initializeMintIx);
-
-      // Partially sign the transaction with the mint Keypair
-      transaction.partialSign(mint);
-
-      // Let the wallet sign the transaction
-      const signedTransaction = await wallet.signTransaction(transaction);
-
-      // Send the transaction to the blockchain
-      const txId = await connection.sendRawTransaction(signedTransaction.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: "confirmed",
-      });
-
-      // Confirm the transaction
-      await connection.confirmTransaction(txId);
-
-      const mintAddress = mint.publicKey.toBase58();
       setSnackbarMessage(
         `Success: Token created. Mint address: [${mintAddress}](https://explorer.solana.com/address/${mintAddress}?cluster=devnet). Transaction: [${txId}](https://explorer.solana.com/tx/${txId}?cluster=devnet)`
       );

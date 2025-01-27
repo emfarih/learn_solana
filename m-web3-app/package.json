@@ -17,7 +17,7 @@
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",
     "@expo/vector-icons": "^14.0.2",
-    "@metaplex-foundation/mpl-token-metadata": "^3.3.0",
+    "@metaplex-foundation/mpl-token-metadata": "^2.13.0",
     "@solana/spl-token": "^0.4.9",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-react-ui": "^0.9.35",
