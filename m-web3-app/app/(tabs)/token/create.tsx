@@ -17,8 +17,9 @@ import {
 } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { createMetadataTransactionInstruction } from "../../../components/create/create_metadata_tx";
-import { createTokenAccountInstruction } from "../../../components/create/create_token_account_tx";
+import { createTokenAccountTransaction } from "../../../components/create/create_token_account_tx";
 import { createAndInitializeMintTransactionInstructions } from "@/components/create/create_and_init_mint_tx";
+import { mintTokenInstruction } from "@/components/create/mint_token_ix";
 
 const CreateScreen = () => {
   const wallet = useWallet();
@@ -27,6 +28,7 @@ const CreateScreen = () => {
   const [metadataName, setMetadataName] = useState("");
   const [metadataSymbol, setMetadataSymbol] = useState("");
   const [metadataUri, setMetadataUri] = useState("");
+  const [amount, setAmount] = useState("1"); // New state for amount
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
 
@@ -45,7 +47,6 @@ const CreateScreen = () => {
       const _createMintTransactionIxs = await createAndInitializeMintTransactionInstructions(connection, mint.publicKey, wallet.publicKey, decimals);
 
       const mintAddress = mint.publicKey.toBase58(); // This is the actual mint address
-      // const mintAddress = "HoTsDYtP4iMcqCqyapGFLuF7PveFh47Ng8FpqU5CFE5Z";
       console.log("Mint Address:", mintAddress);
 
       // Step 2: Create Metadata Transaction
@@ -61,8 +62,17 @@ const CreateScreen = () => {
 
       // Step 3: Create Token Account Transaction
       console.log("Creating token account transaction...");
-      const _createATAtransactionInstruction = await createTokenAccountInstruction(connection, wallet.publicKey, mintAddress);
+      const { instruction: _createATAtransactionInstruction, associatedTokenAccountAddress }  = await createTokenAccountTransaction(connection, wallet.publicKey, mintAddress);
       console.log("Token account transaction created:", _createATAtransactionInstruction);
+
+      // Step 4: Mint Token 
+      if (!associatedTokenAccountAddress) {
+        throw new Error("ATA is null.");
+      }
+      console.log("Minting token account transaction...");
+      const amountToMint = parseInt(amount); // Use the dynamic amount input
+      const _mintTokenIx = await mintTokenInstruction(mintAddress, wallet.publicKey, associatedTokenAccountAddress, amountToMint);
+      console.log("Mint token instruction created:", _mintTokenIx);
 
       // Combine all transactions into one
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
@@ -87,17 +97,21 @@ const CreateScreen = () => {
         combinedTransaction.add(_createATAtransactionInstruction);
         console.log("Added token account instructions to the combined transaction.");
       }
+      if (_mintTokenIx) {
+        combinedTransaction.add(_mintTokenIx);
+        console.log("Added mint token instructions to the combined transaction.");
+      }
+
       combinedTransaction.instructions.forEach((instruction, index) => {
         console.log(`Instruction ${index}:`, instruction.keys.map(key => key.pubkey.toBase58()));
       });
 
       console.log("Combined transaction blockhash:", blockhash);
-      
 
       // Sign all transactions with the wallet
       console.log("Signing the transaction with the wallet...");
       const signedTransaction = await wallet.signTransaction(combinedTransaction);
-      await signedTransaction.partialSign(mint)
+      await signedTransaction.partialSign(mint);
       console.log("Transaction signed:", signedTransaction);
 
       // Send the signed transaction
@@ -154,6 +168,14 @@ const CreateScreen = () => {
         placeholder="Metadata URI"
         value={metadataUri}
         onChangeText={setMetadataUri}
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Amount to Mint"
+        keyboardType="numeric"
+        value={amount}
+        onChangeText={setAmount}
       />
 
       {loading ? (

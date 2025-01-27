@@ -4,7 +4,6 @@ import { Connection, clusterApiUrl, PublicKey } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import METADATA_PROGRAM_ID, { Token } from "@/components/token";
 
-
 const ListTokenScreen = () => {
   const wallet = useWallet();
   const [tokens, setTokens] = useState<Token[]>([]);
@@ -66,6 +65,7 @@ const ListTokenScreen = () => {
               mint,
               amount: tokenAmount.uiAmount || 0,
               decimals: tokenAmount.decimals,
+              accountAddress: accountInfo.pubkey.toString(), // Add token account address
               ...metadata,
             };
           })
@@ -86,7 +86,7 @@ const ListTokenScreen = () => {
 
   const renderItem = ({ item }: { item: Token }) => (
     <View style={styles.tokenContainer}>
-      {item.name == null && item.symbol == null? (
+      {item.name == null && item.symbol == null ? (
         <Text style={styles.tokenText}>Mint Address: {item.mint}</Text>
       ) : (
         <>
@@ -94,13 +94,11 @@ const ListTokenScreen = () => {
           <Text style={styles.tokenText}>Symbol: {item.symbol}</Text>
         </>
       )}
-      <Text style={styles.tokenText}>
-        Balance: {item.amount.toFixed(item.decimals)}
-      </Text>
+      <Text style={styles.tokenText}>Balance: {item.amount.toFixed(item.decimals)}</Text>
       {item.uri && <Text style={styles.tokenText}>URI: {item.uri}</Text>}
+      <Text style={styles.tokenText}>Account Address: {item.accountAddress}</Text> {/* Display token account address */}
     </View>
   );
-  
 
   return (
     <View style={styles.container}>

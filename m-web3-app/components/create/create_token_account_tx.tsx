@@ -1,11 +1,11 @@
 import { Connection, PublicKey, PublicKeyInitData } from "@solana/web3.js";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction } from "@solana/spl-token";
 
-export const createTokenAccountInstruction = async (
-  connection : Connection,
+export const createTokenAccountTransaction = async (
+  connection: Connection,
   walletPublicKey: PublicKey, // Accept wallet as an argument
   mintAddress: PublicKeyInitData
-): Promise<any | null> => {
+): Promise<{ instruction: any | null, associatedTokenAccountAddress: PublicKey | null }> => {
   try {
     const mintPublicKey = new PublicKey(mintAddress); // The mint address of the token
 
@@ -26,18 +26,20 @@ export const createTokenAccountInstruction = async (
 
     if (tokenAccountInfo) {
       console.log("Token account already exists!");
-      return null; // Account already exists, no need to create an instruction
+      return { instruction: null, associatedTokenAccountAddress: null }; // Account already exists, no need to create an instruction
     }
 
-    // Return the associated token account instruction
-    return createAssociatedTokenAccountInstruction(
+    // Create and return the associated token account instruction along with the ATA address
+    const instruction = createAssociatedTokenAccountInstruction(
       walletPublicKey, // Payer (the wallet)
       associatedTokenAccountAddress, // The new associated token account
       walletPublicKey, // The owner of the token account
       mintPublicKey // The mint address (token)
     );
+
+    return { instruction, associatedTokenAccountAddress }; // Return both the instruction and the associated token account address
   } catch (error) {
     console.error("Error creating token account instruction:", error);
-    return null; // Return null in case of error
+    return { instruction: null, associatedTokenAccountAddress: null }; // Return nulls in case of error
   }
 };
