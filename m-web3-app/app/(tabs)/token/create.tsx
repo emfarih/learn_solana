@@ -16,6 +16,7 @@ import {
 import { useWallet } from "@solana/wallet-adapter-react";
 import { addMetadataToMint } from "./create/add_metadata";
 import { createAndInitializeMint } from "./create/create_and_init";
+import { createTokenAccount } from "./create/create_token_account";
 
 const CreateScreen = () => {
   const wallet = useWallet();
@@ -37,14 +38,17 @@ const CreateScreen = () => {
       const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
       // const { txId, mintAddress } = await createAndInitializeMint(connection, wallet, decimals);
       const mintAddress = '7cFKRrupJYM37pvR3aEtosto1MYDUh2PvTbKX5LJhunJ';
-      const txId = await addMetadataToMint(
-        mintAddress,
-        metadataName,
-        metadataSymbol,
-        metadataUri,
-        wallet.publicKey, // Pass wallet public key
-        wallet.signTransaction // Pass wallet signTransaction function
-      );
+      // const txId = await addMetadataToMint(
+      //   mintAddress,
+      //   metadataName,
+      //   metadataSymbol,
+      //   metadataUri,
+      //   wallet.publicKey, // Pass wallet public key
+      //   wallet.signTransaction // Pass wallet signTransaction function
+      // );
+      // Call the createTokenAccount function
+      const txId = await createTokenAccount(wallet, mintAddress);
+
 
       setSnackbarMessage(
         `Success: Token created. Mint address: [${mintAddress}](https://explorer.solana.com/address/${mintAddress}?cluster=devnet). Transaction: [${txId}](https://explorer.solana.com/tx/${txId}?cluster=devnet)`
