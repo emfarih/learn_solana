@@ -1,7 +1,6 @@
 import {
   Connection,
   SystemProgram,
-  Keypair,
   PublicKey,
   TransactionInstruction,
 } from "@solana/web3.js";
@@ -9,8 +8,8 @@ import {
   createInitializeMintInstruction,
   getMinimumBalanceForRentExemptMint,
   MINT_SIZE,
+  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { WalletContextState } from "@solana/wallet-adapter-react";
 
 /**
  * Creates and initializes a mint account.
@@ -33,7 +32,7 @@ export const createAndInitializeMintTransactionInstructions = async (
     newAccountPubkey: mintPublicKey,
     lamports: rentExemption,
     space: MINT_SIZE,
-    programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+    programId: TOKEN_PROGRAM_ID,
   });
 
   // Initialize mint instruction

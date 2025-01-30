@@ -9,17 +9,15 @@ import {
   Linking,
 } from "react-native";
 import { Snackbar } from "react-native-paper";
-import {
-  Connection,
-  Keypair,
-  Transaction,
-  clusterApiUrl,
-} from "@solana/web3.js";
+import { Connection, Keypair, Transaction, clusterApiUrl } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { createMetadataTransactionInstruction } from "../../../components/create/create_metadata_tx";
-import { createTokenAccountTransaction } from "../../../components/create/create_token_account_tx";
-import { createAndInitializeMintTransactionInstructions } from "@/components/create/create_and_init_mint_tx";
-import { mintTokenInstruction } from "@/components/create/mint_token_ix";
+import { createAndInitializeMintTransactionInstructions } from "@/components/token/create/create_and_init_mint_ix";
+import { createMetadataTransactionInstruction } from "@/components/token/create/create_metadata_ix";
+import { createTokenAccountTransaction } from "@/components/token/create/create_token_account_ix";
+import { mintTokenInstruction } from "@/components/token/create/mint_token_ix";
+// import { createMetadataTransactionInstruction } from "../../../components/create/create_metadata_tx";
+// import { createTokenAccountTransaction } from "../../../components/create/create_token_account_tx";
+// import { mintTokenInstruction } from "@/components/create/mint_token_ix";
 
 const CreateScreen = () => {
   const wallet = useWallet();
@@ -39,7 +37,7 @@ const CreateScreen = () => {
 
     setLoading(true);
     try {
-      const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+      const connection = new Connection(clusterApiUrl('devnet'));
 
       // Step 1: Create Mint Transaction (this will return a transaction object)
       console.log("Creating mint transaction...");
@@ -88,7 +86,6 @@ const CreateScreen = () => {
         combinedTransaction.add(_createMintTransactionIxs[1]);
         console.log("Added mint transaction to the combined transaction.");
       }
-      
       if (_createMetadataTransactionIx) {
         combinedTransaction.add(_createMetadataTransactionIx);
         console.log("Added metadata instructions to the combined transaction.");
@@ -111,7 +108,7 @@ const CreateScreen = () => {
       // Sign all transactions with the wallet
       console.log("Signing the transaction with the wallet...");
       const signedTransaction = await wallet.signTransaction(combinedTransaction);
-      await signedTransaction.partialSign(mint);
+      signedTransaction.partialSign(mint);
       console.log("Transaction signed:", signedTransaction);
 
       // Send the signed transaction
