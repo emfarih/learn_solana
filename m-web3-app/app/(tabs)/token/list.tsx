@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
 import { Connection, clusterApiUrl, PublicKey } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import METADATA_PROGRAM_ID, { Token } from "@/components/token";
+import { styles } from "@/components/styles";
+import { truncateAddress } from "@/components/token/utils";
 
 const ListTokenScreen = () => {
   const wallet = useWallet();
@@ -26,12 +28,7 @@ const ListTokenScreen = () => {
         const accountInfo = await connection.getAccountInfo(metadataPDA);
         if (accountInfo) {
           const metadata = accountInfo.data.toString("utf8");
-          console.log("Raw metadata:", metadata);
           const parsedMetadata = JSON.parse(metadata.slice(metadata.indexOf("{")));
-          console.log("parsedMetadata", parsedMetadata);
-          console.log("parsedMetadata.data", parsedMetadata.data);
-          console.log("parsedMetadata.data.name", parsedMetadata.data.name);
-          console.log("parsedMetadata.data.symbol", parsedMetadata.data.symbol);
           return {
             name: parsedMetadata.data.name,
             symbol: parsedMetadata.data.symbol,
@@ -65,7 +62,7 @@ const ListTokenScreen = () => {
               mint,
               amount: tokenAmount.uiAmount || 0,
               decimals: tokenAmount.decimals,
-              accountAddress: accountInfo.pubkey.toString(), // Add token account address
+              accountAddress: accountInfo.pubkey.toString(),
               ...metadata,
             };
           })
@@ -87,25 +84,33 @@ const ListTokenScreen = () => {
   const renderItem = ({ item }: { item: Token }) => (
     <View style={styles.tokenContainer}>
       {item.name == null && item.symbol == null ? (
-        <Text style={styles.tokenText}>Mint Address: {item.mint}</Text>
+        <Text style={styles.tokenText}>Mint Address: {truncateAddress(item.mint)}</Text>
       ) : (
         <>
-          <Text style={styles.tokenText}>Name: {item.name}</Text>
-          <Text style={styles.tokenText}>Symbol: {item.symbol}</Text>
+          <Text style={styles.tokenName}>{item.name}</Text>
+          <Text style={styles.tokenSymbol}>{item.symbol}</Text>
         </>
       )}
-      <Text style={styles.tokenText}>Balance: {item.amount.toFixed(item.decimals)}</Text>
-      {item.uri && <Text style={styles.tokenText}>URI: {item.uri}</Text>}
-      <Text style={styles.tokenText}>Account Address: {item.accountAddress}</Text> {/* Display token account address */}
+      <Text style={styles.tokenBalance}>
+        Balance: {item.amount.toFixed(item.decimals)}
+      </Text>
+      {item.uri && <Text style={styles.tokenUri}>URI: {item.uri}</Text>}
+      <Text style={styles.tokenAccount}>
+        Account Address: {truncateAddress(item.accountAddress)}
+      </Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
+      <Text style={styles.title}>Token List</Text>
+
       {!wallet.connected ? (
-        <Text style={styles.notConnectedText}>Please connect your wallet to view tokens.</Text>
+        <View style={styles.infoContainer}>
+          <Text style={styles.infoText}>Please connect your wallet to proceed.</Text>
+        </View>
       ) : loading ? (
-        <ActivityIndicator size="large" color="#007bff" />
+        <ActivityIndicator size="large" color="#007bff" style={styles.loadingIndicator} />
       ) : tokens.length === 0 ? (
         <Text style={styles.noTokensText}>No tokens found for this wallet.</Text>
       ) : (
@@ -113,40 +118,12 @@ const ListTokenScreen = () => {
           data={tokens}
           keyExtractor={(item) => item.mint}
           renderItem={renderItem}
+          contentContainerStyle={styles.flatListContainer}
+          style={{ width: '100%' }} // Ensures FlatList itself takes full width
         />
       )}
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#f8f9fa",
-  },
-  tokenContainer: {
-    padding: 15,
-    marginVertical: 8,
-    backgroundColor: "#ffffff",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ced4da",
-  },
-  tokenText: {
-    fontSize: 16,
-    color: "#343a40",
-  },
-  noTokensText: {
-    fontSize: 18,
-    color: "#6c757d",
-    textAlign: "center",
-  },
-  notConnectedText: {
-    fontSize: 18,
-    color: "#dc3545",
-    textAlign: "center",
-  },
-});
 
 export default ListTokenScreen;

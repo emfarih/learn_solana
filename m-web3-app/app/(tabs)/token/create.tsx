@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   Button,
-  StyleSheet,
   ActivityIndicator,
   Linking,
 } from "react-native";
@@ -15,9 +14,7 @@ import { createAndInitializeMintTransactionInstructions } from "@/components/tok
 import { createMetadataTransactionInstruction } from "@/components/token/create/create_metadata_ix";
 import { createTokenAccountTransaction } from "@/components/token/create/create_token_account_ix";
 import { mintTokenInstruction } from "@/components/token/create/mint_token_ix";
-// import { createMetadataTransactionInstruction } from "../../../components/create/create_metadata_tx";
-// import { createTokenAccountTransaction } from "../../../components/create/create_token_account_tx";
-// import { mintTokenInstruction } from "@/components/create/mint_token_ix";
+import { styles } from "@/components/styles";
 
 const CreateScreen = () => {
   const wallet = useWallet();
@@ -137,8 +134,13 @@ const CreateScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Create Token</Text>
-
-      <TextInput
+      {!wallet.connected ? (
+              <View style={styles.infoContainer}>
+                <Text style={styles.infoText}>Please connect your wallet to proceed.</Text>
+              </View>
+            ) : (
+              <>
+              <TextInput
         style={styles.input}
         placeholder="Decimals"
         keyboardType="numeric"
@@ -204,38 +206,10 @@ const CreateScreen = () => {
           })}
         </Text>
       </Snackbar>
+              </>)}
+      
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-  input: {
-    width: "100%",
-    padding: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    marginBottom: 15,
-  },
-  snackbarText: {
-    color: "white",
-    fontSize: 14,
-  },
-  link: {
-    color: "cyan",
-    textDecorationLine: "underline",
-  },
-});
 
 export default CreateScreen;

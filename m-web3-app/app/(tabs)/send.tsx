@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connection, clusterApiUrl, Transaction, SystemProgram, PublicKey } from "@solana/web3.js";
 import { Buffer } from "buffer";
 import { Snackbar } from "react-native-paper";
+import { styles } from "@/components/styles";
 
 if (typeof global.Buffer === "undefined") {
   global.Buffer = Buffer; // Assign Buffer to the global object
@@ -65,8 +66,14 @@ const SendScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Send SOL</Text>
-      <TextInput
+          <Text style={styles.title}>Send SOL</Text>
+      {!wallet.connected ? (
+              <View style={styles.infoContainer}>
+                <Text style={styles.infoText}>Please connect your wallet to proceed.</Text>
+              </View>
+            ) : (
+              <>
+              <TextInput
         style={styles.input}
         placeholder="Recipient Address"
         value={recipient}
@@ -89,46 +96,10 @@ const SendScreen = () => {
       >
         {snackbarMessage}
       </Snackbar>
+              </>)}
+              
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-    backgroundColor: "#f8f9fa",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 30,
-    color: "#343a40",
-  },
-  input: {
-    width: "90%",
-    padding: 15,
-    marginVertical: 10,
-    backgroundColor: "#ffffff",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ced4da",
-  },
-  button: {
-    marginTop: 20,
-    backgroundColor: "#007bff",
-    padding: 15,
-    borderRadius: 8,
-    width: "90%",
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-});
 
 export default SendScreen;
