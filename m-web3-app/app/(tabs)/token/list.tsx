@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { View, Text, FlatList, ActivityIndicator } from "react-native";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { styles } from "@/components/styles";
-import { truncateAddress } from "@/components/token/utils";
+import { truncateAddress } from "@/components/utils";
 import { Token, useTokens } from "@/components/token/token_provider";
 
 const ListTokenScreen = () => {

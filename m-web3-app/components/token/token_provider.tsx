@@ -1,9 +1,12 @@
-// TokenProvider.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Connection, clusterApiUrl, PublicKey } from "@solana/web3.js";
+import { Connection, clusterApiUrl, PublicKey, Transaction, Keypair } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { METADATA_PROGRAM_ID } from "./utils";
+import { METADATA_PROGRAM_ID, waitForConfirmation } from "../utils";
+import { createAndInitializeMintTransactionInstructions } from "@/components/token/create/create_and_init_mint_ix";
+import { createMetadataTransactionInstruction } from "@/components/token/create/create_metadata_ix";
+import { createTokenAccountTransaction } from "@/components/token/create/create_token_account_ix";
+import { mintTokenInstruction } from "@/components/token/create/mint_token_ix";
 
 type Token = {
   mint: string;
@@ -18,10 +21,11 @@ type Token = {
 interface TokenContextType {
   tokens: Token[];
   loading: boolean;
-  fetchTokens: () => void; // Add a method to fetch tokens
+  fetchTokens: () => void;
+  createToken: (decimals: string, metadataName: string, metadataSymbol: string, metadataUri: string, amount: string) => Promise<void>; // New method
 }
 
-const TokenContext = createContext<TokenContextType>({ tokens: [], loading: true, fetchTokens: () => {} });
+const TokenContext = createContext<TokenContextType>({ tokens: [], loading: true, fetchTokens: () => {}, createToken: async () => {} });
 
 const fetchMetadata = async (connection: Connection, mint: string) => {
   try {
@@ -86,9 +90,9 @@ export const TokenProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           accountAddress: account.pubkey.toBase58(),
           amount: Number(info.tokenAmount.amount),
           decimals: info.tokenAmount.decimals,
-          name: metadata.name,    // Token name from metadata
-          symbol: metadata.symbol,  // Token symbol from metadata
-          uri: metadata.uri,      // Token URI from metadata
+          name: metadata.name,
+          symbol: metadata.symbol,
+          uri: metadata.uri,
         });
       }
 
@@ -101,18 +105,115 @@ export const TokenProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Automatically fetch tokens when the wallet changes
+  const createToken = async (
+    decimals: string,
+    metadataName: string,
+    metadataSymbol: string,
+    metadataUri: string,
+    amount: string
+  ) => {
+    if (!wallet.publicKey || !wallet.signTransaction) {
+      throw new Error("Wallet is not connected or public key is null.");
+    }
+  
+    setLoading(true);
+    try {
+      const connection = new Connection(clusterApiUrl("devnet"));
+  
+      // Step 1: Create Mint Transaction
+      const mint = Keypair.generate(); // Generate a new mint account
+      const _createMintTransactionIxs = await createAndInitializeMintTransactionInstructions(
+        connection,
+        mint.publicKey,
+        wallet.publicKey,
+        decimals
+      );
+  
+      const mintAddress = mint.publicKey.toBase58();
+  
+      // Step 2: Create Metadata Transaction
+      const _createMetadataTransactionIx = await createMetadataTransactionInstruction(
+        mintAddress,
+        metadataName,
+        metadataSymbol,
+        metadataUri,
+        wallet.publicKey
+      );
+  
+      // Step 3: Create Token Account Transaction
+      const { instruction: _createATAtransactionInstruction, associatedTokenAccountAddress } = await createTokenAccountTransaction(
+        connection,
+        wallet.publicKey,
+        mintAddress
+      );
+  
+      // Step 4: Mint Token
+      if (!associatedTokenAccountAddress) {
+        throw new Error("ATA is null.");
+      }
+      const amountToMint = parseInt(amount); // Use the dynamic amount input
+      const _mintTokenIx = await mintTokenInstruction(
+        mintAddress,
+        wallet.publicKey,
+        associatedTokenAccountAddress,
+        amountToMint
+      );
+  
+      // Combine all transactions into one
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+      const combinedTransaction = new Transaction({
+        blockhash,
+        lastValidBlockHeight,
+        feePayer: wallet.publicKey,
+      });
+  
+      if (_createMintTransactionIxs) {
+        combinedTransaction.add(_createMintTransactionIxs[0]);
+        combinedTransaction.add(_createMintTransactionIxs[1]);
+      }
+      if (_createMetadataTransactionIx) {
+        combinedTransaction.add(_createMetadataTransactionIx);
+      }
+      if (_createATAtransactionInstruction) {
+        combinedTransaction.add(_createATAtransactionInstruction);
+      }
+      if (_mintTokenIx) {
+        combinedTransaction.add(_mintTokenIx);
+      }
+  
+      // Sign all transactions with the wallet
+      const signedTransaction = await wallet.signTransaction(combinedTransaction);
+      signedTransaction.partialSign(mint);
+  
+      // Send the signed transaction
+      const txId = await connection.sendRawTransaction(signedTransaction.serialize(), {
+        skipPreflight: false,
+        preflightCommitment: "confirmed",
+      });
+  
+      console.log("Transaction ID:", txId);
+  
+      // Wait for the transaction to be confirmed
+      await waitForConfirmation(connection, txId);  // Wait for confirmation
+  
+      // Fetch tokens again after confirmation
+      await fetchTokens();
+  
+    } catch (error) {
+      console.error("Error creating token:", error);
+    } finally {
+      setLoading(false);
+    }
+  };  
+
   useEffect(() => {
     if (wallet.publicKey) {
-      console.log("Wallet connected, fetching tokens...");
       fetchTokens();
-    } else {
-      console.log("Wallet not connected.");
     }
   }, [wallet.publicKey]);
 
   return (
-    <TokenContext.Provider value={{ tokens, loading, fetchTokens }}>
+    <TokenContext.Provider value={{ tokens, loading, fetchTokens, createToken }}>
       {children}
     </TokenContext.Provider>
   );
