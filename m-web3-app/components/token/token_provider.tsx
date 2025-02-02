@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Connection, clusterApiUrl, PublicKey, Transaction, Keypair } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { createTransferInstruction, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { createAssociatedTokenAccountInstruction, createTransferInstruction, getAssociatedTokenAddress, getOrCreateAssociatedTokenAccount, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { METADATA_PROGRAM_ID, waitForConfirmation } from "../utils";
 import { createAndInitializeMintTransactionInstructions } from "@/components/token/create/create_and_init_mint_ix";
 import { createMetadataTransactionInstruction } from "@/components/token/create/create_metadata_ix";
@@ -29,7 +29,7 @@ interface TokenContextType {
     metadataUri: string,
     amount: string
   ) => Promise<string>; // Return txId as string
-  sendToken: (recipient: string, mint: string, amount: string) => Promise<string>; // Return txId as string
+  sendToken: (recipient: string, amount: string, mint: string) => Promise<string>; // Return txId as string
 }
 
 const TokenContext = createContext<TokenContextType>({
@@ -229,51 +229,94 @@ export const TokenProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!wallet.publicKey || !wallet.signTransaction) {
       throw new Error("Wallet is not connected or public key is null.");
     }
-
+  
     setLoading(true);
     try {
       const connection = new Connection(clusterApiUrl("devnet"));
-
+      console.log("Connection established to devnet.");
+  
       // Convert amount to integer (use token's decimals for precision)
       const token = tokens.find((t) => t.mint === selectedToken);
       const tokenAmount = parseFloat(amount) * Math.pow(10, token?.decimals || 9);
+      console.log(`Amount to send: ${tokenAmount} (in token's smallest unit)`);
+      console.log("Selected token:", selectedToken);
 
-      // Fetch associated token addresses
+      // Fetch associated token address for sender
       const senderTokenAccount = await getAssociatedTokenAddress(
         new PublicKey(selectedToken),
         wallet.publicKey
       );
-      const recipientTokenAccount = await getAssociatedTokenAddress(
+      console.log(`Sender's token account: ${senderTokenAccount.toBase58()}`);
+  
+      // Get recipient token account
+      let recipientTokenAccount = await getAssociatedTokenAddress(
         new PublicKey(selectedToken),
         new PublicKey(recipientAddress)
       );
-
+      console.log(`Recipient's token account: ${recipientTokenAccount.toBase58()}`);
+  
+      // Check if recipient token account exists
+      const recipientAccountInfo = await connection.getAccountInfo(recipientTokenAccount);
+      if (!recipientAccountInfo) {
+        console.log("Recipient's associated token account not found. Creating a new one.");
+  
+        // If not, create the associated token account for the recipient
+        const createAssociatedTokenAccountIx = createAssociatedTokenAccountInstruction(
+          wallet.publicKey, // payer (signer)
+          recipientTokenAccount, // recipient's token account
+          new PublicKey(recipientAddress), // recipient public key
+          new PublicKey(selectedToken) // token mint address
+        );
+  
+        // Create the transaction to create the associated token account
+        const createTransaction = new Transaction().add(createAssociatedTokenAccountIx);
+        const { blockhash: createBlockhash } = await connection.getLatestBlockhash();
+        createTransaction.recentBlockhash = createBlockhash;
+        createTransaction.feePayer = wallet.publicKey;
+  
+        // Sign and send the transaction to create the associated token account
+        const signedCreateTransaction = await wallet.signTransaction(createTransaction);
+        const txId = await connection.sendRawTransaction(signedCreateTransaction.serialize(), {
+          skipPreflight: false,
+          preflightCommitment: "confirmed",
+        });
+        await connection.confirmTransaction(txId); // Ensure it's confirmed before proceeding
+        console.log(`Associated token account created! TxID: ${txId}`);
+      } else {
+        console.log("Recipient's associated token account already exists.");
+      }
+  
       // Create transfer instruction
       const transferInstruction = createTransferInstruction(
         senderTokenAccount,
-        recipientTokenAccount,
+        recipientTokenAccount, // Use the recipient's token account (created if needed)
         wallet.publicKey,
         tokenAmount
       );
-
-      // Create the transaction
-      const transaction = new Transaction().add(transferInstruction);
-
-      // Add recent blockhash to the transaction
-      const { blockhash } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = wallet.publicKey;
-
-      // Sign and send the transaction
-      const signedTransaction = await wallet.signTransaction(transaction);
-      const txId = await connection.sendRawTransaction(signedTransaction.serialize(), {
+      console.log(`Transfer instruction created for amount: ${tokenAmount}`);
+  
+      // Create the transfer transaction
+      const transferTransaction = new Transaction().add(transferInstruction);
+      const { blockhash: transferBlockhash } = await connection.getLatestBlockhash();
+      transferTransaction.recentBlockhash = transferBlockhash;
+      transferTransaction.feePayer = wallet.publicKey;
+  
+      // Sign and send the transfer transaction
+      const signedTransferTransaction = await wallet.signTransaction(transferTransaction);
+      const transferTxId = await connection.sendRawTransaction(signedTransferTransaction.serialize(), {
         skipPreflight: false,
         preflightCommitment: "confirmed",
       });
+  
+      console.log(`Token transfer successful! TxID: ${transferTxId}`);
+      // Wait for the transaction to be confirmed
+      await waitForConfirmation(connection, transferTxId);  // Wait for confirmation
+  
+      // Fetch tokens again after confirmation
+      await fetchTokens();
 
-      console.log(`Transaction successful! TxID: ${txId}`);
-      return txId; // Return the transaction ID
-
+      return transferTxId; // Return the transaction ID
+  
     } catch (error) {
       console.error("Error sending token:", error);
       throw error;
@@ -282,6 +325,7 @@ export const TokenProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
   
+
   useEffect(() => {
     if (wallet.publicKey) {
       fetchTokens();

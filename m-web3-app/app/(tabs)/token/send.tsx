@@ -1,15 +1,14 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, Button, ActivityIndicator, TouchableOpacity } from "react-native";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { PublicKey, Transaction, Connection, clusterApiUrl } from "@solana/web3.js";
-import { getAssociatedTokenAddress, createTransferInstruction, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { styles } from "@/components/styles";
 import { useTokens } from "@/components/token/token_provider";
 import { Picker } from "@react-native-picker/picker";
+import { Snackbar } from "react-native-paper";
 
 const SendScreen = () => {
   const wallet = useWallet();
-  const { tokens, loading: tokensLoading } = useTokens();
+  const {sendToken, tokens, loading: tokensLoading } = useTokens();
   const [recipientAddress, setRecipientAddress] = useState("");
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,7 +23,7 @@ const SendScreen = () => {
     }
   }, [tokens]);
 
-  const sendToken = async () => {
+  const handleSendToken = async () => {
     if (!wallet.publicKey || !wallet.signTransaction) {
       setSnackbarMessage("Wallet is not connected.");
       setSnackbarVisible(true);
@@ -39,46 +38,10 @@ const SendScreen = () => {
 
     setLoading(true);
     try {
-      const connection = new Connection(clusterApiUrl("devnet"));
+      // Call the sendToken function from the token provider
+      await sendToken(recipientAddress,amount,selectedToken);
 
-      // Convert amount to integer (use token's decimals for precision)
-      const token = tokens.find((t) => t.mint === selectedToken);
-      const tokenAmount = parseFloat(amount) * Math.pow(10, token?.decimals || 9);
-
-      // Fetch associated token addresses
-      const senderTokenAccount = await getAssociatedTokenAddress(
-        new PublicKey(selectedToken),
-        wallet.publicKey
-      );
-      const recipientTokenAccount = await getAssociatedTokenAddress(
-        new PublicKey(selectedToken),
-        new PublicKey(recipientAddress)
-      );
-
-      // Create transfer instruction
-      const transferInstruction = createTransferInstruction(
-        senderTokenAccount,
-        recipientTokenAccount,
-        wallet.publicKey,
-        tokenAmount
-      );
-
-      // Create the transaction
-      const transaction = new Transaction().add(transferInstruction);
-
-      // Add recent blockhash to the transaction
-      const { blockhash } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = wallet.publicKey;
-
-      // Sign and send the transaction
-      const signedTransaction = await wallet.signTransaction(transaction);
-      const txId = await connection.sendRawTransaction(signedTransaction.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: "confirmed",
-      });
-
-      setSnackbarMessage(`Transaction successful! TxID: ${txId}`);
+      setSnackbarMessage(`Transaction successful!`);
       setSnackbarVisible(true);
     } catch (error) {
       console.error("Error sending token:", error);
@@ -127,16 +90,14 @@ const SendScreen = () => {
           {loading || tokensLoading ? (
             <ActivityIndicator size="large" color="#007bff" />
           ) : (
-            <TouchableOpacity style={styles.button} onPress={sendToken}>
+            <TouchableOpacity style={styles.button} onPress={handleSendToken}>
               <Text style={styles.buttonText}>Send</Text>
             </TouchableOpacity>
           )}
 
-          {snackbarVisible && (
-            <View style={styles.snackbar}>
-              <Text>{snackbarMessage}</Text>
-            </View>
-          )}
+          <Snackbar style={styles.snackbar} visible={snackbarVisible} onDismiss={() => setSnackbarVisible(false)} duration={5000}>
+            <Text style = {styles.snackbarText}>{snackbarMessage}</Text>
+          </Snackbar>
         </>
       )}
     </View>
