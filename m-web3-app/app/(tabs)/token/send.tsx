@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, ActivityIndicator } from "react-native";
+import { View, Text, TextInput, Button, ActivityIndicator, TouchableOpacity } from "react-native";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, Transaction, Connection, clusterApiUrl } from "@solana/web3.js";
 import { getAssociatedTokenAddress, createTransferInstruction, TOKEN_PROGRAM_ID } from "@solana/spl-token";
@@ -127,7 +127,9 @@ const SendScreen = () => {
           {loading || tokensLoading ? (
             <ActivityIndicator size="large" color="#007bff" />
           ) : (
-            <Button title="Send Token" onPress={sendToken} />
+            <TouchableOpacity style={styles.button} onPress={sendToken}>
+              <Text style={styles.buttonText}>Send</Text>
+            </TouchableOpacity>
           )}
 
           {snackbarVisible && (

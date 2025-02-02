@@ -19,7 +19,7 @@ export const styles = StyleSheet.create({
   input: {
     width: "90%",
     padding: 15,
-    marginVertical: 10,
+    marginVertical: 10,  // Same margin as picker
     backgroundColor: "#ffffff",
     borderRadius: 8,
     borderWidth: 1,
@@ -68,12 +68,12 @@ export const styles = StyleSheet.create({
     marginTop: 20,
   },
   picker: {
-    width: "100%",
+    width: "90%",  // Consistent width with TextInput
     height: 50,
     borderWidth: 1,
-    borderColor: "#ccc", // Light border color for picker
-    borderRadius: 5,
-    marginBottom: 15,
+    borderColor: "#ced4da", // Soft border color (same as TextInput)
+    borderRadius: 8,  // Same border-radius as TextInput
+    marginVertical: 10,  // Matching vertical margin with TextInput
     backgroundColor: "#ffffff", // White background for picker
   },
   snackbar: {
@@ -103,7 +103,6 @@ export const styles = StyleSheet.create({
     width: "100%",     // Forces it to use the full available width
     overflow: "hidden", // Ensures content doesn't overflow
   },
-  
   tokenText: {
     fontSize: 16,
     color: "#343a40", // Dark color for token text
@@ -126,7 +125,6 @@ export const styles = StyleSheet.create({
     flexWrap: "wrap",  // Allow text to wrap if needed
     maxWidth: "100%",  // Prevent overflow
   },
-  
   tokenSymbol: {
     fontSize: 16,
     color: "#6c757d",

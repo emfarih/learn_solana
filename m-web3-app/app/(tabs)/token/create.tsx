@@ -6,6 +6,7 @@ import {
   Button,
   ActivityIndicator,
   Linking,
+  TouchableOpacity,
 } from "react-native";
 import { Snackbar } from "react-native-paper";
 import { Connection, Keypair, Transaction, clusterApiUrl } from "@solana/web3.js";
@@ -197,7 +198,9 @@ const CreateScreen = () => {
           {loading ? (
             <ActivityIndicator size="large" color="#007bff" />
           ) : (
-            <Button title="Create Token" onPress={createToken} />
+            <TouchableOpacity style={styles.button} onPress={createToken}>
+              <Text style={styles.buttonText}>Create Token</Text>
+            </TouchableOpacity>
           )}
 
           <Snackbar
