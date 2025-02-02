@@ -5,7 +5,7 @@ import { useTokens } from "@/components/token/token_provider";
 import { styles } from "@/components/styles";
 
 const CreateScreen = () => {
-  const { createToken, loading, tokens } = useTokens(); // Access createToken from context
+  const { createToken, loading } = useTokens(); // Access createToken from context
   const [decimals, setDecimals] = useState("0");
   const [metadataName, setMetadataName] = useState("");
   const [metadataSymbol, setMetadataSymbol] = useState("");
