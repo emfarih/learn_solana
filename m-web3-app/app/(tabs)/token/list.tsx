@@ -1,85 +1,13 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
-import { Connection, clusterApiUrl, PublicKey } from "@solana/web3.js";
+import React, { useEffect } from "react";
+import { View, Text, FlatList, ActivityIndicator } from "react-native";
 import { useWallet } from "@solana/wallet-adapter-react";
-import METADATA_PROGRAM_ID, { Token } from "@/components/token";
 import { styles } from "@/components/styles";
 import { truncateAddress } from "@/components/token/utils";
+import { Token, useTokens } from "@/components/token/token_provider";
 
 const ListTokenScreen = () => {
   const wallet = useWallet();
-  const [tokens, setTokens] = useState<Token[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchMetadata = async (connection: Connection, mint: string) => {
-      try {
-        const metadataPDA = (
-          await PublicKey.findProgramAddress(
-            [
-              Buffer.from("metadata"),
-              METADATA_PROGRAM_ID.toBuffer(),
-              new PublicKey(mint).toBuffer(),
-            ],
-            METADATA_PROGRAM_ID
-          )
-        )[0];
-
-        const accountInfo = await connection.getAccountInfo(metadataPDA);
-        if (accountInfo) {
-          const metadata = accountInfo.data.toString("utf8");
-          const parsedMetadata = JSON.parse(metadata.slice(metadata.indexOf("{")));
-          return {
-            name: parsedMetadata.data.name,
-            symbol: parsedMetadata.data.symbol,
-            uri: parsedMetadata.data.uri,
-          };
-        }
-      } catch (error) {
-        console.warn(`Failed to fetch metadata for mint ${mint}:`, error);
-      }
-      return {};
-    };
-
-    const fetchTokens = async () => {
-      if (!wallet.publicKey) return;
-
-      setLoading(true);
-      try {
-        const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
-
-        // Fetch token accounts associated with the wallet
-        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(wallet.publicKey, {
-          programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-        });
-
-        const tokensList: Token[] = await Promise.all(
-          tokenAccounts.value.map(async (accountInfo) => {
-            const { mint, tokenAmount } = accountInfo.account.data.parsed.info;
-            const metadata = await fetchMetadata(connection, mint);
-
-            return {
-              mint,
-              amount: tokenAmount.uiAmount || 0,
-              decimals: tokenAmount.decimals,
-              accountAddress: accountInfo.pubkey.toString(),
-              ...metadata,
-            };
-          })
-        );
-
-        setTokens(tokensList);
-      } catch (error) {
-        console.error("Error fetching token accounts:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (wallet.connected) {
-      fetchTokens();
-    }
-  }, [wallet.publicKey, wallet.connected]);
+  const { tokens, loading } = useTokens(); // Get tokens and loading state from the context
 
   const renderItem = ({ item }: { item: Token }) => (
     <View style={styles.tokenContainer}>

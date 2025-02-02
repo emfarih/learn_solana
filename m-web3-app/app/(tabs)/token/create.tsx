@@ -15,9 +15,11 @@ import { createMetadataTransactionInstruction } from "@/components/token/create/
 import { createTokenAccountTransaction } from "@/components/token/create/create_token_account_ix";
 import { mintTokenInstruction } from "@/components/token/create/mint_token_ix";
 import { styles } from "@/components/styles";
+import { useTokens } from "@/components/token/token_provider";
 
 const CreateScreen = () => {
   const wallet = useWallet();
+  const { fetchTokens } = useTokens(); // Get the fetchTokens function from the context
   const [loading, setLoading] = useState(false);
   const [decimals, setDecimals] = useState("0");
   const [metadataName, setMetadataName] = useState("");
@@ -34,12 +36,17 @@ const CreateScreen = () => {
 
     setLoading(true);
     try {
-      const connection = new Connection(clusterApiUrl('devnet'));
+      const connection = new Connection(clusterApiUrl("devnet"));
 
-      // Step 1: Create Mint Transaction (this will return a transaction object)
+      // Step 1: Create Mint Transaction
       console.log("Creating mint transaction...");
       const mint = Keypair.generate(); // Generate a new mint account
-      const _createMintTransactionIxs = await createAndInitializeMintTransactionInstructions(connection, mint.publicKey, wallet.publicKey, decimals);
+      const _createMintTransactionIxs = await createAndInitializeMintTransactionInstructions(
+        connection,
+        mint.publicKey,
+        wallet.publicKey,
+        decimals
+      );
 
       const mintAddress = mint.publicKey.toBase58(); // This is the actual mint address
       console.log("Mint Address:", mintAddress);
@@ -57,7 +64,10 @@ const CreateScreen = () => {
 
       // Step 3: Create Token Account Transaction
       console.log("Creating token account transaction...");
-      const { instruction: _createATAtransactionInstruction, associatedTokenAccountAddress }  = await createTokenAccountTransaction(connection, wallet.publicKey, mintAddress);
+      const {
+        instruction: _createATAtransactionInstruction,
+        associatedTokenAccountAddress,
+      } = await createTokenAccountTransaction(connection, wallet.publicKey, mintAddress);
       console.log("Token account transaction created:", _createATAtransactionInstruction);
 
       // Step 4: Mint Token 
@@ -66,7 +76,12 @@ const CreateScreen = () => {
       }
       console.log("Minting token account transaction...");
       const amountToMint = parseInt(amount); // Use the dynamic amount input
-      const _mintTokenIx = await mintTokenInstruction(mintAddress, wallet.publicKey, associatedTokenAccountAddress, amountToMint);
+      const _mintTokenIx = await mintTokenInstruction(
+        mintAddress,
+        wallet.publicKey,
+        associatedTokenAccountAddress,
+        amountToMint
+      );
       console.log("Mint token instruction created:", _mintTokenIx);
 
       // Combine all transactions into one
@@ -77,7 +92,7 @@ const CreateScreen = () => {
         feePayer: wallet.publicKey,
       });
 
-      // Add each transaction only if it's not null
+      // Add each transaction if not null
       if (_createMintTransactionIxs) {
         combinedTransaction.add(_createMintTransactionIxs[0]);
         combinedTransaction.add(_createMintTransactionIxs[1]);
@@ -97,7 +112,7 @@ const CreateScreen = () => {
       }
 
       combinedTransaction.instructions.forEach((instruction, index) => {
-        console.log(`Instruction ${index}:`, instruction.keys.map(key => key.pubkey.toBase58()));
+        console.log(`Instruction ${index}:`, instruction.keys.map((key) => key.pubkey.toBase58()));
       });
 
       console.log("Combined transaction blockhash:", blockhash);
@@ -117,11 +132,13 @@ const CreateScreen = () => {
 
       console.log("Transaction ID:", txId);
 
+      // Trigger the fetchTokens method after the token is created
+      await fetchTokens();
+
       setSnackbarMessage(
         `Success: Token created. Mint address: [${mintAddress}](https://explorer.solana.com/address/${mintAddress}?cluster=devnet). Transaction: [${txId}](https://explorer.solana.com/tx/${txId}?cluster=devnet)`
       );
       setSnackbarVisible(true);
-
     } catch (error) {
       console.error("Error creating token:", error);
       setSnackbarMessage(`Error: Failed to create token: ${error}`);
@@ -135,79 +152,79 @@ const CreateScreen = () => {
     <View style={styles.container}>
       <Text style={styles.title}>Create Token</Text>
       {!wallet.connected ? (
-              <View style={styles.infoContainer}>
-                <Text style={styles.infoText}>Please connect your wallet to proceed.</Text>
-              </View>
-            ) : (
-              <>
-              <TextInput
-        style={styles.input}
-        placeholder="Decimals"
-        keyboardType="numeric"
-        value={decimals}
-        onChangeText={setDecimals}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Metadata Name"
-        value={metadataName}
-        onChangeText={setMetadataName}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Metadata Symbol"
-        value={metadataSymbol}
-        onChangeText={setMetadataSymbol}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Metadata URI"
-        value={metadataUri}
-        onChangeText={setMetadataUri}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Amount to Mint"
-        keyboardType="numeric"
-        value={amount}
-        onChangeText={setAmount}
-      />
-
-      {loading ? (
-        <ActivityIndicator size="large" color="#007bff" />
+        <View style={styles.infoContainer}>
+          <Text style={styles.infoText}>Please connect your wallet to proceed.</Text>
+        </View>
       ) : (
-        <Button title="Create Token" onPress={createToken} />
-      )}
+        <>
+          <TextInput
+            style={styles.input}
+            placeholder="Decimals"
+            keyboardType="numeric"
+            value={decimals}
+            onChangeText={setDecimals}
+          />
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={5000}
-      >
-        <Text style={styles.snackbarText}>
-          {snackbarMessage.split(/(\[.*?\]\(.*?\))/).map((part, index) => {
-            const match = part.match(/\[(.*?)\]\((.*?)\)/);
-            if (match) {
-              return (
-                <Text
-                  key={index}
-                  style={styles.link}
-                  onPress={() => Linking.openURL(match[2])}
-                >
-                  {match[1]}
-                </Text>
-              );
-            }
-            return part;
-          })}
-        </Text>
-      </Snackbar>
-              </>)}
-      
+          <TextInput
+            style={styles.input}
+            placeholder="Metadata Name"
+            value={metadataName}
+            onChangeText={setMetadataName}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Metadata Symbol"
+            value={metadataSymbol}
+            onChangeText={setMetadataSymbol}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Metadata URI"
+            value={metadataUri}
+            onChangeText={setMetadataUri}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Amount to Mint"
+            keyboardType="numeric"
+            value={amount}
+            onChangeText={setAmount}
+          />
+
+          {loading ? (
+            <ActivityIndicator size="large" color="#007bff" />
+          ) : (
+            <Button title="Create Token" onPress={createToken} />
+          )}
+
+          <Snackbar
+            visible={snackbarVisible}
+            onDismiss={() => setSnackbarVisible(false)}
+            duration={5000}
+          >
+            <Text style={styles.snackbarText}>
+              {snackbarMessage.split(/(\[.*?\]\(.*?\))/).map((part, index) => {
+                const match = part.match(/\[(.*?)\]\((.*?)\)/);
+                if (match) {
+                  return (
+                    <Text
+                      key={index}
+                      style={styles.link}
+                      onPress={() => Linking.openURL(match[2])}
+                    >
+                      {match[1]}
+                    </Text>
+                  );
+                }
+                return part;
+              })}
+            </Text>
+          </Snackbar>
+        </>
+      )}
     </View>
   );
 };
