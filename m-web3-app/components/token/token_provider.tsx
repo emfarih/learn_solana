@@ -1,12 +1,15 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Connection, clusterApiUrl, PublicKey, Transaction, Keypair } from "@solana/web3.js";
+import { Connection, clusterApiUrl, PublicKey, Transaction } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { createAssociatedTokenAccountInstruction, createTransferInstruction, getAssociatedTokenAddress, getOrCreateAssociatedTokenAccount, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { createAssociatedTokenAccountInstruction, createTransferInstruction, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { METADATA_PROGRAM_ID, waitForConfirmation } from "../utils";
-import { createAndInitializeMintTransactionInstructions } from "@/components/token/create/create_and_init_mint_ix";
-import { createMetadataTransactionInstruction } from "@/components/token/create/create_metadata_ix";
-import { createTokenAccountTransaction } from "@/components/token/create/create_token_account_ix";
-import { mintTokenInstruction } from "@/components/token/create/mint_token_ix";
+// import { WalletAdapterPlugin } from "./wallet_adapter_plugin";
+import { mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
+import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters'
+// import { generateSigner, Umi } from "@metaplex-foundation/umi";
+// import { createMintWithAssociatedToken, findAssociatedTokenPda } from "@metaplex-foundation/mpl-toolbox";
+// import { WalletAdapterPlugin } from "./wallet_adapter_plugin";
 
 type Token = {
   mint: string;
@@ -73,42 +76,51 @@ export const TokenProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const wallet = useWallet();
   const [tokens, setTokens] = useState<Token[]>([]);
   const [loading, setLoading] = useState(true);
+  // const [umi, setUmi] = useState<Umi | null>(null);
 
   const fetchTokens = async () => {
-    if (!wallet.publicKey) return;
-
+    console.log("Start Fetching...");
+  
     setLoading(true);
-    const connection = new Connection(clusterApiUrl("devnet"));
-
+  
     try {
-      console.log("Fetching tokens for wallet:", wallet.publicKey.toBase58());
-
-      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(wallet.publicKey, {
-        programId: TOKEN_PROGRAM_ID,
-      });
-
-      console.log("Fetched token accounts:", tokenAccounts);
-
-      const tokenList: Token[] = [];
-
-      for (const account of tokenAccounts.value) {
-        const info = account.account.data.parsed.info;
-        console.log("Token account info:", info);
-
-        // Fetch metadata for the token
-        const metadata = await fetchMetadata(connection, info.mint);
-
-        tokenList.push({
-          mint: info.mint,
-          accountAddress: account.pubkey.toBase58(),
-          amount: Number(info.tokenAmount.amount),
-          decimals: info.tokenAmount.decimals,
-          name: metadata.name,
-          symbol: metadata.symbol,
-          uri: metadata.uri,
-        });
-      }
-
+      const umi = createUmi('https://api.devnet.solana.com')
+ 
+      // const walletPlugin = new WalletAdapterPlugin(wallet);
+      // const umi = createUmi()
+      // console.log("Umi instance created:", umi);
+      // newUmi.use(walletPlugin)
+      // setUmi(newUmi);
+      // console.log("Fetching tokens for wallet:", publicKey.toBase58());
+  
+      // // Fetch token accounts owned by the wallet
+      // const tokenAccounts = await umi.rpc.getTokenAccountsByOwner(publicKey);
+  
+      // console.log("Fetched token accounts:", tokenAccounts);
+  
+      // const tokenList = await Promise.all(
+      //   tokenAccounts.map(async (account) => {
+      //     const mintAddress = account.mint;
+      //     const associatedTokenAddress = getAssociatedTokenAddressSync(mintAddress, publicKey);
+  
+      //     const balance = Number(account.amount);
+      //     const decimals = account.decimals || 0;
+  
+      //     // Fetch metadata for the token
+      //     const metadata = await umi.rpc.getMetadata(mintAddress);
+  
+      //     return {
+      //       mint: mintAddress.toString(),
+      //       accountAddress: associatedTokenAddress.toString(),
+      //       amount: balance / Math.pow(10, decimals),
+      //       decimals,
+      //       name: metadata?.name || "Unknown",
+      //       symbol: metadata?.symbol || "UNKNOWN",
+      //       uri: metadata?.uri || "",
+      //     };
+      //   })
+      // );
+      const tokenList :Token[] = [];
       console.log("Constructed token list:", tokenList);
       setTokens(tokenList);
     } catch (error) {
@@ -132,87 +144,33 @@ export const TokenProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setLoading(true);
     try {
       const connection = new Connection(clusterApiUrl("devnet"));
+
+      // const newUmi = createUmi(connection);
+      // const walletPlugin = new WalletAdapterPlugin(wallet);
+      // newUmi.use(walletPlugin)
+      // setUmi(newUmi);
+
+      // ✅ Step 1: Generate a new token mint
+      // const mint = generateSigner(newUmi);
+
+      // ✅ Step 2: Define the recipient (wallet) and find its associated token account (ATA)
+      // const recipient = newUmi.identity.publicKey;
+      // const ata = findAssociatedTokenPda(newUmi, { mint: mint.publicKey, owner: recipient });
+
+      // ✅ Step 3: Create the mint and send the transaction
+      // const {signature}= await createMintWithAssociatedToken(newUmi, {
+      //   mint,
+      //   mintAuthority: newUmi.identity.publicKey,
+      //   decimals: 9, // 9 is standard for SPL tokens
+      //   amount: 1000000n, // Initial supply (adjust as needed)
+      // }).sendAndConfirm(newUmi);
   
-      // Step 1: Create Mint Transaction
-      const mint = Keypair.generate(); // Generate a new mint account
-      const _createMintTransactionIxs = await createAndInitializeMintTransactionInstructions(
-        connection,
-        mint.publicKey,
-        wallet.publicKey,
-        decimals
-      );
-  
-      const mintAddress = mint.publicKey.toBase58();
-  
-      // Step 2: Create Metadata Transaction
-      const _createMetadataTransactionIx = await createMetadataTransactionInstruction(
-        mintAddress,
-        metadataName,
-        metadataSymbol,
-        metadataUri,
-        wallet.publicKey
-      );
-  
-      // Step 3: Create Token Account Transaction
-      const { instruction: _createATAtransactionInstruction, associatedTokenAccountAddress } = await createTokenAccountTransaction(
-        connection,
-        wallet.publicKey,
-        mintAddress
-      );
-  
-      // Step 4: Mint Token
-      if (!associatedTokenAccountAddress) {
-        throw new Error("ATA is null.");
-      }
-      const amountToMint = parseInt(amount); // Use the dynamic amount input
-      const _mintTokenIx = await mintTokenInstruction(
-        mintAddress,
-        wallet.publicKey,
-        associatedTokenAccountAddress,
-        amountToMint
-      );
-  
-      // Combine all transactions into one
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
-      const combinedTransaction = new Transaction({
-        blockhash,
-        lastValidBlockHeight,
-        feePayer: wallet.publicKey,
-      });
-  
-      if (_createMintTransactionIxs) {
-        combinedTransaction.add(_createMintTransactionIxs[0]);
-        combinedTransaction.add(_createMintTransactionIxs[1]);
-      }
-      if (_createMetadataTransactionIx) {
-        combinedTransaction.add(_createMetadataTransactionIx);
-      }
-      if (_createATAtransactionInstruction) {
-        combinedTransaction.add(_createATAtransactionInstruction);
-      }
-      if (_mintTokenIx) {
-        combinedTransaction.add(_mintTokenIx);
-      }
-  
-      // Sign all transactions with the wallet
-      const signedTransaction = await wallet.signTransaction(combinedTransaction);
-      signedTransaction.partialSign(mint);
-  
-      // Send the signed transaction
-      const txId = await connection.sendRawTransaction(signedTransaction.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: "confirmed",
-      });
-  
-      console.log("Transaction ID:", txId);
-  
-      // Wait for the transaction to be confirmed
-      await waitForConfirmation(connection, txId);  // Wait for confirmation
-  
-      // Fetch tokens again after confirmation
-      await fetchTokens();
-      return txId;
-  
+      // console.log("✅ Token Mint Address:", mint.publicKey.toString());
+      // console.log("✅ Associated Token Account (ATA):", ata.toString());
+      // console.log("✅ Transaction ID (txId):", signature.toString());
+     
+      // return signature.toString();
+      return "";
     } catch (error) {
       console.error("Error creating token:", error);
       throw error;
