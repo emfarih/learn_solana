@@ -7,7 +7,26 @@ import { Token, useTokens } from "@/components/token/token_provider";
 
 const ListTokenScreen = () => {
   const wallet = useWallet();
-  const { tokens, loading } = useTokens(); // Get tokens and loading state from the context
+  const { tokens, loading } = useTokens();
+
+  useEffect(() => {
+    console.log("ListTokenScreen mounted");
+    return () => {
+      console.log("ListTokenScreen unmounted");
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log(`Wallet connection status: connected = ${wallet.connected}`);
+  }, [wallet.connected]);
+
+  useEffect(() => {
+    if (!loading) {
+      console.log(`Tokens loaded: count = ${tokens.length}`);
+    } else {
+      console.log("Loading tokens...");
+    }
+  }, [loading, tokens]);
 
   const renderItem = ({ item }: { item: Token }) => (
     <View style={styles.tokenContainer}>
@@ -47,7 +66,7 @@ const ListTokenScreen = () => {
           keyExtractor={(item) => item.mint}
           renderItem={renderItem}
           contentContainerStyle={styles.flatListContainer}
-          style={{ width: '100%' }} // Ensures FlatList itself takes full width
+          style={{ width: "100%" }}
         />
       )}
     </View>

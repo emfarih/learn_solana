@@ -3,6 +3,8 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
+    "export-with-subpath:web": "npx expo export --platform web && node scripts/fix-base-path.js && npx serve -s dist",
+    "export:web": "npx expo export --platform web && npx serve -s dist",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
@@ -18,6 +20,7 @@
     "@expo/metro-runtime": "~4.0.1",
     "@expo/vector-icons": "^14.0.2",
     "@metaplex-foundation/mpl-token-metadata": "^2.13.0",
+    "@react-native-picker/picker": "2.9.0",
     "@solana/spl-token": "0.3.11",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-react-ui": "^0.9.35",
@@ -46,8 +49,7 @@
     "react-native-screens": "~4.4.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "~0.19.13",
-    "react-native-webview": "13.12.5",
-    "@react-native-picker/picker": "2.9.0"
+    "react-native-webview": "13.12.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

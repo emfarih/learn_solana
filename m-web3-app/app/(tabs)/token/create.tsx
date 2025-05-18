@@ -15,11 +15,22 @@ const CreateScreen = () => {
   const [snackbarMessage, setSnackbarMessage] = useState("");
 
   const handleCreateToken = async () => {
+    console.log("Starting token creation with:", {
+      decimals,
+      metadataName,
+      metadataSymbol,
+      metadataUri,
+      amount,
+    });
+
     try {
       await createToken(decimals, metadataName, metadataSymbol, metadataUri, amount);
+      console.log("Token created successfully");
       setSnackbarMessage("Token created successfully!");
       setSnackbarVisible(true);
+      // Optional: reset fields here if desired
     } catch (error) {
+      console.error("Error creating token:", error);
       setSnackbarMessage(`Error: ${error}`);
       setSnackbarVisible(true);
     }
@@ -33,6 +44,7 @@ const CreateScreen = () => {
         placeholder="Decimals"
         value={decimals}
         onChangeText={setDecimals}
+        keyboardType="numeric"
       />
       <TextInput
         style={styles.input}
@@ -57,6 +69,7 @@ const CreateScreen = () => {
         placeholder="Amount to Mint"
         value={amount}
         onChangeText={setAmount}
+        keyboardType="numeric"
       />
       {loading ? (
         <ActivityIndicator size="large" color="#007bff" />
@@ -65,8 +78,13 @@ const CreateScreen = () => {
           <Text style={styles.buttonText}>Create Token</Text>
         </TouchableOpacity>
       )}
-      <Snackbar style={styles.snackbar} visible={snackbarVisible} onDismiss={() => setSnackbarVisible(false)} duration={5000}>
-        <Text style = {styles.snackbarText}>{snackbarMessage}</Text>
+      <Snackbar
+        style={styles.snackbar}
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={5000}
+      >
+        <Text style={styles.snackbarText}>{snackbarMessage}</Text>
       </Snackbar>
     </View>
   );

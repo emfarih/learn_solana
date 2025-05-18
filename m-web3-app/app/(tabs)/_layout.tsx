@@ -1,11 +1,25 @@
+import React, { useEffect } from 'react';
 import WalletContextProvider from '@/components/WalletContextProvider';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
 
 export default function TabLayout() {
+  console.log('TabLayout rendered');
+
   return (
     <WalletContextProvider>
-      <Tabs screenOptions={{ headerShown: false }}>
+      <Tabs
+        screenOptions={{ headerShown: false }}
+        // Add a listener for tab changes to log the current tab
+        screenListeners={{
+          tabPress: (e) => {
+            console.log('Tab pressed:', e.target);
+          },
+          focus: (e) => {
+            console.log('Tab focused:', e.target);
+          },
+        }}
+      >
         <Tabs.Screen
           name="index"
           options={{

@@ -1,15 +1,21 @@
 import { Connection, PublicKey, PublicKeyInitData } from "@solana/web3.js";
-import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction } from "@solana/spl-token";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountInstruction,
+} from "@solana/spl-token";
 
 export const createTokenAccountTransaction = async (
   connection: Connection,
-  walletPublicKey: PublicKey, // Accept wallet as an argument
+  walletPublicKey: PublicKey,
   mintAddress: PublicKeyInitData
-): Promise<{ instruction: any | null, associatedTokenAccountAddress: PublicKey | null }> => {
+): Promise<{ instruction: any | null; associatedTokenAccountAddress: PublicKey | null }> => {
   try {
-    const mintPublicKey = new PublicKey(mintAddress); // The mint address of the token
+    const mintPublicKey = new PublicKey(mintAddress);
+    console.log("[createTokenAccountTransaction] Mint PublicKey:", mintPublicKey.toBase58());
+    console.log("[createTokenAccountTransaction] Wallet PublicKey:", walletPublicKey.toBase58());
 
-    // Derive the associated token account address synchronously
+    // Derive the ATA address
     const [associatedTokenAccountAddress] = PublicKey.findProgramAddressSync(
       [
         walletPublicKey.toBuffer(),
@@ -18,28 +24,27 @@ export const createTokenAccountTransaction = async (
       ],
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
+    console.log("[createTokenAccountTransaction] Associated Token Account Address:", associatedTokenAccountAddress.toBase58());
 
-    console.log("Associated Token Account Address:", associatedTokenAccountAddress.toBase58());
-
-    // Check if the associated token account already exists
+    // Check if ATA exists
     const tokenAccountInfo = await connection.getAccountInfo(associatedTokenAccountAddress);
-
     if (tokenAccountInfo) {
-      console.log("Token account already exists!");
-      return { instruction: null, associatedTokenAccountAddress: null }; // Account already exists, no need to create an instruction
+      console.log("[createTokenAccountTransaction] Token account already exists, no instruction needed.");
+      return { instruction: null, associatedTokenAccountAddress: null };
     }
 
-    // Create and return the associated token account instruction along with the ATA address
+    // Create instruction to create ATA
     const instruction = createAssociatedTokenAccountInstruction(
-      walletPublicKey, // Payer (the wallet)
-      associatedTokenAccountAddress, // The new associated token account
-      walletPublicKey, // The owner of the token account
-      mintPublicKey // The mint address (token)
+      walletPublicKey,               // payer
+      associatedTokenAccountAddress, // ATA address
+      walletPublicKey,               // owner
+      mintPublicKey                 // mint
     );
 
-    return { instruction, associatedTokenAccountAddress }; // Return both the instruction and the associated token account address
+    console.log("[createTokenAccountTransaction] Created associated token account instruction.");
+    return { instruction, associatedTokenAccountAddress };
   } catch (error) {
-    console.error("Error creating token account instruction:", error);
-    return { instruction: null, associatedTokenAccountAddress: null }; // Return nulls in case of error
+    console.error("[createTokenAccountTransaction] Error creating token account instruction:", error);
+    return { instruction: null, associatedTokenAccountAddress: null };
   }
 };

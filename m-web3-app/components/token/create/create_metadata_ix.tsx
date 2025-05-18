@@ -9,27 +9,40 @@ const createMetadataTransactionInstruction = async (
   uri: any,
   walletPublicKey: PublicKey
 ): Promise<any> => {
+  console.log("[createMetadataTransactionInstruction] Starting creation of metadata instruction");
+  console.log(`[createMetadataTransactionInstruction] Mint Address: ${mintAddress}`);
+  console.log(`[createMetadataTransactionInstruction] Name: ${name}`);
+  console.log(`[createMetadataTransactionInstruction] Symbol: ${symbol}`);
+  console.log(`[createMetadataTransactionInstruction] URI: ${uri}`);
+  console.log(`[createMetadataTransactionInstruction] Wallet PublicKey: ${walletPublicKey.toBase58()}`);
+
   const mintPublicKey = new PublicKey(mintAddress);
 
-  // Define metadata parameters
+  const METADATA_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+  
+  // Find PDA for metadata
   const metadataPDA = await PublicKey.findProgramAddress(
     [
       Buffer.from("metadata"),
-      new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s").toBuffer(),
+      METADATA_PROGRAM_ID.toBuffer(),
       mintPublicKey.toBuffer(),
     ],
-    new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s")
+    METADATA_PROGRAM_ID
   );
 
+  console.log(`[createMetadataTransactionInstruction] Metadata PDA: ${metadataPDA[0].toBase58()}`);
+
   const metadataData = {
-    name, 
-    symbol, 
-    uri, 
-    sellerFeeBasisPoints: 500,  // Royalty in basis points (5%)
+    name,
+    symbol,
+    uri,
+    sellerFeeBasisPoints: 500, // 5%
     creators: null,
     uses: null,
     collection: null,
   };
+
+  console.log("[createMetadataTransactionInstruction] Metadata data prepared:", metadataData);
 
   // Create metadata instruction
   const metadataInstruction = createCreateMetadataAccountV3Instruction(
@@ -48,6 +61,8 @@ const createMetadataTransactionInstruction = async (
       },
     }
   );
+
+  console.log("[createMetadataTransactionInstruction] Metadata instruction created");
 
   return metadataInstruction;
 };

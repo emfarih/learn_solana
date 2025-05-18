@@ -4,28 +4,63 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connection, clusterApiUrl } from "@solana/web3.js";
 
+// export default function HomeScreen() {
+//   useEffect(() => {
+//     console.log('[HomeScreen] mounted');
+//   }, []);
+
+//   return (
+//     <View>
+//       <Text>Hello from HomeScreen!</Text>
+//     </View>
+//   );
+// }
+
+
 const HomeScreen = () => {
   const wallet = useWallet();
   const [balance, setBalance] = useState<number | null>(null);
 
+  console.log("[HomeScreen] Render - wallet.connected:", wallet.connected);
+
   useEffect(() => {
+    console.log("[HomeScreen] mounted");
+
+    return () => {
+      console.log("[HomeScreen] unmounted");
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log(`[HomeScreen] Wallet connection status changed: connected = ${wallet.connected}`);
+    console.log(`[HomeScreen] Public key: ${wallet.publicKey ? wallet.publicKey.toBase58() : "null"}`);
+
     const fetchBalance = async () => {
       if (wallet.connected && wallet.publicKey) {
         try {
+          console.log(`[HomeScreen] Fetching balance for publicKey: ${wallet.publicKey.toBase58()}`);
           const connection = new Connection(clusterApiUrl("devnet"));
           const balanceInLamports = await connection.getBalance(wallet.publicKey);
           const balanceInSol = balanceInLamports / 1e9;
+          console.log(`[HomeScreen] Balance fetched: ${balanceInSol.toFixed(2)} SOL`);
           setBalance(balanceInSol);
         } catch (error) {
-          console.error("Error fetching balance:", error);
+          console.error("[HomeScreen] Error fetching balance:", error);
+          setBalance(null);
         }
       } else {
+        console.log("[HomeScreen] Wallet not connected or publicKey unavailable, resetting balance");
         setBalance(null);
       }
     };
 
     fetchBalance();
   }, [wallet]);
+
+  // Extra effect to log balance changes
+  useEffect(() => {
+    console.log("[HomeScreen] balance state updated:", balance);
+  }, [balance]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>

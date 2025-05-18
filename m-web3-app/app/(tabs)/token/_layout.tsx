@@ -8,11 +8,19 @@ export default function TokenLayout() {
     <TokenProvider>
       <Tabs
         screenOptions={{
-          tabBarStyle: styles.tabBar, // Custom tab bar style
-          tabBarShowLabel: false, // Hide labels, only show icons
-          tabBarActiveTintColor: "#fff", // Active icon color
-          tabBarInactiveTintColor: "#d1d1d1", // Inactive icon color
-          headerShown: false, // Hide the header
+          tabBarStyle: styles.tabBar,
+          tabBarShowLabel: false,
+          tabBarActiveTintColor: "#fff",
+          tabBarInactiveTintColor: "#d1d1d1",
+          headerShown: false,
+        }}
+        screenListeners={{
+          tabPress: (e) => {
+            console.log("Tab pressed:", e.target);
+          },
+          focus: (e) => {
+            console.log("Tab focused:", e.target);
+          },
         }}
       >
         <Tabs.Screen
@@ -40,10 +48,10 @@ export default function TokenLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: "#007bff", // Blue background for the tab bar
-    height: 36, // Reduce the height of the tab bar
-    borderTopWidth: 0, // Remove the border line
-    borderTopStartRadius: 16, // Round the top left corner
-    borderTopEndRadius: 16, // Round the top right corner
+    backgroundColor: "#007bff",
+    height: 36,
+    borderTopWidth: 0,
+    borderTopStartRadius: 16,
+    borderTopEndRadius: 16,
   },
 });
